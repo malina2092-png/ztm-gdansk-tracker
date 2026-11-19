@@ -127,14 +127,17 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  section:not(#mapa).active .surface{padding:10px!important;border-radius:14px}
  section:not(#mapa).active h2{font-size:19px}
  section:not(#mapa).active .hint{font-size:11px;line-height:1.4}
- #activeTable .table-wrap th:nth-child(4),#activeTable .table-wrap td:nth-child(4),
+ /* Pokaż także przewoźnika; ukryj tylko kolumnę akcji, by zmieścić dane */
  #activeTable .table-wrap th:nth-child(5),#activeTable .table-wrap td:nth-child(5),
- #lineResults .table-wrap th:nth-child(4),#lineResults .table-wrap td:nth-child(4),
  #lineResults .table-wrap th:nth-child(5),#lineResults .table-wrap td:nth-child(5){display:none}
- #activeTable .table-wrap th:nth-child(1),#lineResults .table-wrap th:nth-child(1){width:36%}
- #activeTable .table-wrap th:nth-child(2),#lineResults .table-wrap th:nth-child(2){width:30%}
- #activeTable .table-wrap th:nth-child(3),#lineResults .table-wrap th:nth-child(3){width:34%}
- #activeTable .table-wrap td,#lineResults .table-wrap td{font-size:11px;padding:11px 6px}
+ #activeTable .table-wrap th:nth-child(1),#lineResults .table-wrap th:nth-child(1){width:19%}
+ #activeTable .table-wrap th:nth-child(2),#lineResults .table-wrap th:nth-child(2){width:14%}
+ #activeTable .table-wrap th:nth-child(3),#lineResults .table-wrap th:nth-child(3){width:19%}
+ #activeTable .table-wrap th:nth-child(4),#lineResults .table-wrap th:nth-child(4){width:48%}
+ #activeTable .table-wrap th,#lineResults .table-wrap th{padding:6px 3px;font-size:8px}
+ #activeTable .table-wrap td,#lineResults .table-wrap td{font-size:10px;padding:6px 3px;line-height:1.2}
+ #activeTable .table-wrap,#lineResults .table-wrap{border-radius:10px}
+ #activeTable .tag,#lineResults .tag{padding:3px 5px;font-size:10px}
 }
 
 </style>
