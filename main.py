@@ -8,7 +8,7 @@ app = FastAPI(title="Transportie")
 
 GPS_URL = "https://ckan2.multimediagdansk.pl/gpsPositions?v=2"
 VEHICLE_DB_URL = "https://files.cloudgdansk.pl/d/otwarte-dane/ztm/baza-pojazdow.json?v=2"
-STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json"
+STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/d3e96eb6-25ad-4d6c-8651-b1eb39155945/download/stopsingdansk.json"
 DEPARTURES_URL = "https://ckan2.multimediagdansk.pl/departures"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
@@ -39,7 +39,7 @@ h1{font-size:25px;margin:0;letter-spacing:-.7px}.subtitle{color:var(--muted);fon
 nav{position:fixed;z-index:1200;left:16px;top:62px;bottom:16px;width:214px;transition:transform .22s ease;display:flex;flex-direction:column;gap:7px;padding:16px;background:rgba(255,255,255,.91);border:1px solid #fff;border-radius:22px;box-shadow:var(--shadow);backdrop-filter:blur(18px);overflow:auto}
 nav button,nav a,.primary,.secondary,.icon-button{border:0;border-radius:12px;padding:11px 15px;font-weight:650;font-size:13px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block}
 nav button,nav a{background:transparent;color:#66758d;text-align:left;width:100%;padding:13px 14px}nav button.active{background:var(--blue-soft);color:var(--blue);box-shadow:inset 3px 0 var(--blue)}
-body.menu-closed nav{transform:translateX(calc(-100% - 28px));pointer-events:none}body:not(.menu-closed) nav{transform:translateX(0);pointer-events:auto}body.menu-closed section:not(#mapa).active{margin-left:0;padding-left:30px}#menuToggle{position:fixed;z-index:1600;left:12px;top:12px;border:0;border-radius:11px;background:#fff;color:#263957;width:44px;height:44px;padding:0;font-size:21px;box-shadow:var(--shadow);cursor:pointer}#myLocation{position:fixed;z-index:1400;right:12px;left:auto;top:auto;bottom:12px;transform:none;display:grid;place-items:center;border:1px solid #fff;border-radius:12px;background:#1765d1;color:#fff;padding:0;box-shadow:0 4px 15px #123b7466;width:44px;height:44px;font-size:0;font-weight:800;cursor:pointer}#myLocation .loc-icon{display:grid;place-items:center;background:#fff;color:#1765d1;width:29px;height:29px;border-radius:9px;font-size:21px}#myLocation:disabled{opacity:.75;cursor:wait}#myLocation:active{transform:scale(.96)}#locationStatus{position:fixed;z-index:1400;right:12px;left:auto;top:auto;bottom:62px;transform:none;background:#fff;padding:8px 10px;border:1px solid #dbe5f2;border-radius:11px;box-shadow:0 5px 22px #17345b25;font-size:12px;font-weight:600;display:block;max-width:230px;color:#29415f;pointer-events:none}#locationStatus:empty{display:none}main{padding:0;margin:0}
+body.menu-closed nav{transform:translateX(calc(-100% - 28px));pointer-events:none}body:not(.menu-closed) nav{transform:translateX(0);pointer-events:auto}body.menu-closed section:not(#mapa).active{margin-left:0;padding-left:30px}#menuToggle{position:fixed;z-index:1600;left:12px;top:12px;border:0;border-radius:11px;background:#fff;color:#263957;width:44px;height:44px;padding:0;font-size:21px;box-shadow:var(--shadow);cursor:pointer}#myLocation{position:fixed;z-index:1400;right:12px;left:auto;top:auto;bottom:12px;transform:none;display:grid;place-items:center;border:1px solid #fff;border-radius:12px;background:#1765d1;color:#fff;padding:0;box-shadow:0 4px 15px #123b7466;width:44px;height:44px;font-size:0;font-weight:800;cursor:pointer}#myLocation .loc-icon{display:grid;place-items:center;background:#fff;color:#1765d1;width:29px;height:29px;border-radius:9px;font-size:21px}#myLocation:disabled{opacity:.75;cursor:wait}#myLocation:active{transform:scale(.96)}#mapZoom{position:fixed;z-index:1600;left:12px;top:64px;display:flex;flex-direction:column;overflow:hidden;border-radius:11px;background:#fff;box-shadow:var(--shadow);border:1px solid #e4eaf2}#mapZoom button{width:44px;height:42px;border:0;background:#fff;color:#263957;font-size:25px;font-weight:600;line-height:1;cursor:pointer}#mapZoom button+button{border-top:1px solid #e7edf5}#mapZoom button:active{background:#edf3ff}#locationStatus{position:fixed;z-index:1400;right:12px;left:auto;top:auto;bottom:62px;transform:none;background:#fff;padding:8px 10px;border:1px solid #dbe5f2;border-radius:11px;box-shadow:0 5px 22px #17345b25;font-size:12px;font-weight:600;display:block;max-width:230px;color:#29415f;pointer-events:none}#locationStatus:empty{display:none}main{padding:0;margin:0}
 section{display:none}section.active{display:block}#mapa.active{display:block;position:fixed;inset:0;z-index:1}#mapa .section-head{display:none}#mapa .map-layout{position:absolute;inset:0}#mapa .map-layout>.surface{position:absolute;inset:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}#mapa .map-side{position:absolute;z-index:600;right:16px;top:76px;width:230px;display:flex;flex-direction:column;gap:10px}#mapa .map-side .surface{background:rgba(255,255,255,.9);backdrop-filter:blur(14px);padding:13px;border-radius:16px}section:not(#mapa).active{position:relative;margin-left:246px;padding:88px 30px 30px}
 .section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin:8px 0 16px}
 h2{font-size:21px;letter-spacing:-.4px;margin:0 0 5px}.hint{font-size:13px;color:var(--muted)}
@@ -90,6 +90,7 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 </head>
 <body class="menu-closed">
 <button id="menuToggle" onclick="toggleMenu()" aria-label="Otwórz lub zamknij menu">☰</button>
+<div id="mapZoom" aria-label="Przybliżenie mapy"><button type="button" onclick="zoomMap(1)" aria-label="Przybliż">+</button><button type="button" onclick="zoomMap(-1)" aria-label="Oddal">−</button></div>
 <button id="myLocation" onclick="locateUser()" aria-label="Pokaż moją lokalizację"><span class="loc-icon">◎</span><span>Moja lokalizacja</span></button><div id="locationStatus" aria-live="polite">Kliknij, aby pokazać swoją pozycję na mapie.</div>
 <header>
  <div class="brand"><div class="logo">🚌</div><div><h1>Transportie</h1><div class="subtitle">Gdańsk · tracker komunikacji miejskiej</div></div></div>
@@ -164,12 +165,12 @@ let map=null;let allStops=[];
 function initMap(){
  try{
   if(!window.L||map)return;
-  map=L.map('map').setView([54.3520,18.6466],12);map.on('zoomend',refreshTooltips);
+  map=L.map('map',{zoomControl:false}).setView([54.3520,18.6466],12);map.on('zoomend',refreshTooltips);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
  }catch(e){console.error('Map init:',e);}
 }
 function loadMapLibrary(){
- if(window.L){initMap();return;}
+ if(window.L){initMap();if(typeof updateVehicles==='function')updateVehicles();if(typeof loadStops==='function')loadStops();return;}
  const script=document.createElement('script');
  script.src='https://unpkg.com/leaflet/dist/leaflet.js';
  script.async=true;
@@ -187,9 +188,11 @@ document.getElementById('showFleet').checked=labelSettings.fleet;
 function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(button)button.classList.add('active');if(window.innerWidth<=850)document.body.classList.add('menu-closed');if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),180);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();if(id==='konto')refreshAccount();if(id==='odjazdy'){if(!allStops.length)loadStops();searchStops();}}
  window.showSection=showSection;
 function toggleMenu(){document.body.classList.toggle('menu-closed');if(map)setTimeout(()=>map.invalidateSize(),260);}
+function zoomMap(delta){if(map)map.setZoom(map.getZoom()+delta);}
+window.zoomMap=zoomMap;
 function locateUser(){const status=document.getElementById('locationStatus'),button=document.getElementById('myLocation');button.disabled=true;button.style.opacity='.7';status.textContent='Pobieram lokalizację…';if(!navigator.geolocation){status.textContent='Ta przeglądarka nie obsługuje lokalizacji.';button.disabled=false;button.style.opacity='1';return;}navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude,lon=pos.coords.longitude;if(map){if(userLocationMarker)map.removeLayer(userLocationMarker);userLocationMarker=L.circleMarker([lat,lon],{radius:10,color:'#fff',weight:4,fillColor:'#1765d1',fillOpacity:1}).addTo(map).bindPopup('Twoja lokalizacja');map.setView([lat,lon],16);userLocationMarker.openPopup();}status.textContent='Twoja lokalizacja jest widoczna na mapie.';button.disabled=false;button.style.opacity='1';},err=>{status.textContent=err.code===1?'Nie przyznano zgody. Zezwól Safari na dostęp do lokalizacji.':err.code===3?'Pobieranie lokalizacji trwało zbyt długo. Spróbuj ponownie.':'Nie udało się pobrać lokalizacji.';button.disabled=false;button.style.opacity='1';},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});}
 function saveLabelSettings(){labelSettings={line:document.getElementById('showLine').checked,brigade:document.getElementById('showBrigade').checked,fleet:document.getElementById('showFleet').checked};localStorage.setItem('transportie-labels',JSON.stringify(labelSettings));const summary=document.getElementById('mapLabelSummary');if(summary)summary.textContent='Etykiety: '+([labelSettings.line?'Linia':null,labelSettings.brigade?'Brygada':null,labelSettings.fleet?'Tabor':null].filter(Boolean).join(' · ')||'wyłączone');refreshTooltips();}
-async function loadStops(){try{const response=await fetch('/api/stops');if(!response.ok)throw new Error('Nie udało się pobrać przystanków');const data=await response.json();allStops=data.stops||[];if(!map){searchStops();return;}allStops.forEach(stop=>{const id=String(stop.stopId||''),lat=Number(stop.lat),lon=Number(stop.lon);if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||stopMarkers[id])return;const marker=L.marker([lat,lon],{icon:L.divIcon({className:'stop-marker',html:'<div class="stop-icon" aria-label="Otwórz odjazdy">ODJAZDY</div>',iconSize:[52,30],iconAnchor:[26,15]})}).addTo(map);marker.bindTooltip(safe(stop.stopName||'Przystanek'),{direction:'top',offset:[0,-10],className:'stop-label'});marker.bindPopup('<div class="stop-popup"><b>'+safe(stop.stopName||'Przystanek')+'</b><div>Sprawdź odjazdy z tego przystanku.</div><button class="stop-action" data-stop-departures="'+safe(id)+'" data-stop-name="'+safe(stop.stopName||'Przystanek')+'">Pokaż odjazdy</button></div>');stopMarkers[id]=marker;});refreshTooltips();}catch(e){console.warn('Przystanki:',e);}}
+async function loadStops(){try{const response=await fetch('/api/stops');if(!response.ok)throw new Error('Nie udało się pobrać przystanków');const data=await response.json();allStops=Array.isArray(data.stops)?data.stops:[];if(!map){searchStops();return;}allStops.forEach(stop=>{const id=String(stop.stopId||''),lat=Number(stop.lat),lon=Number(stop.lon),name=stop.stopName||stop.stopDesc||'Przystanek';if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||stopMarkers[id])return;const marker=L.marker([lat,lon],{icon:L.divIcon({className:'stop-marker',html:'<div class="stop-icon" aria-label="Otwórz odjazdy">ODJAZDY</div>',iconSize:[52,30],iconAnchor:[26,15]})}).addTo(map);marker.bindTooltip(safe(name),{direction:'top',offset:[0,-10],className:'stop-label'});marker.bindPopup('<div class="stop-popup"><b>'+safe(name)+'</b><div>Sprawdź odjazdy z tego przystanku.</div><button type="button" class="stop-action" data-stop-departures="'+safe(id)+'" data-stop-name="'+safe(name)+'">Pokaż odjazdy</button></div>');stopMarkers[id]=marker;});searchStops();refreshTooltips();const results=document.getElementById('stopSearchResults');if(results&&!allStops.length)results.innerHTML='<div class="empty">ZTM nie zwrócił listy przystanków. Spróbuj odświeżyć stronę.</div>';}catch(e){console.warn('Przystanki:',e);const results=document.getElementById('stopSearchResults');if(results)results.innerHTML='<div class="empty">Nie udało się pobrać przystanków ZTM.</div>';}}
 async function loadStopDepartures(id,marker,name){try{const response=await fetch('/api/departures/'+encodeURIComponent(id));if(!response.ok)throw new Error('API odjazdów');const data=await response.json();const rows=(data.departures||[]).slice(0,12);const html=rows.length?rows.map(d=>{const rawTime=d.estimatedTime||d.departureTime||d.time||d.scheduledTime;const dt=rawTime?new Date(rawTime):null;const t=dt&&!isNaN(dt.getTime())?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt&&!isNaN(dt.getTime())?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(d.delayInSeconds==null?'':(d.delayInSeconds>0?'+':'')+Math.round(d.delayInSeconds/60)+' min');return '<div class="departure-row"><span><b>'+safe(d.routeShortName||d.route)+'</b> · '+safe(d.headsign||d.direction||'kierunek nieznany')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}).join(''):'<div>Brak zaplanowanych odjazdów.</div>';marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Najbliższe odjazdy · dane ZTM</div>'+html+'</div>');}catch(e){marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div>Nie udało się pobrać odjazdów.</div></div>');}}
 async function showStopDepartures(id,name){const box=document.getElementById('selectedStopDepartures');if(box)box.innerHTML='<div class="empty">Pobieranie odjazdów…</div>';try{const response=await fetch('/api/departures/'+encodeURIComponent(id));if(!response.ok)throw new Error('API');const data=await response.json();const rows=(data.departures||[]).slice(0,20);const html=rows.length?rows.map(d=>{const raw=d.estimatedTime||d.departureTime||d.time||d.scheduledTime;const dt=raw?new Date(raw):null;const tm=dt&&!isNaN(dt.getTime())?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const mins=dt&&!isNaN(dt.getTime())?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;return '<div class="departure-row"><span><b>'+safe(d.routeShortName||d.route||'—')+'</b> · '+safe(d.headsign||d.direction||'kierunek nieznany')+'</span><span><b>'+(mins===null?'—':mins===0?'teraz':'za '+mins+' min')+'</b><br><small>'+safe(tm)+'</small></span></div>';}).join(''):'<div class="empty">Brak odjazdów w odpowiedzi ZTM.</div>';if(box)box.innerHTML='<h3>'+safe(name)+'</h3>'+html;}catch(e){if(box)box.innerHTML='<div class="empty">Nie udało się pobrać odjazdów.</div>';}}
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
@@ -342,20 +345,31 @@ async def get_stops():
             response = await client.get(STOPS_URL)
             response.raise_for_status()
             raw = response.json()
-        records = raw if isinstance(raw, list) else (
-            raw.get("stops") or raw.get("results") or raw.get("data") or []
-        )
+        records = raw if isinstance(raw, list) else []
+        if isinstance(raw, dict):
+            # ZTM wraps static resources in a date-keyed object: {"YYYY-MM-DD": {"stops": [...]}}.
+            records = raw.get("stops") or raw.get("results") or raw.get("data") or []
+            if not records:
+                dated = [
+                    (key, value.get("stops"))
+                    for key, value in raw.items()
+                    if isinstance(value, dict) and isinstance(value.get("stops"), list)
+                ]
+                if dated:
+                    records = sorted(dated, key=lambda entry: entry[0])[-1][1]
         stops = []
         for item in records:
             if not isinstance(item, dict):
                 continue
             stop_id = item.get("stopId", item.get("stop_id", item.get("id")))
-            name = item.get("stopName", item.get("stop_name", item.get("name", "Przystanek")))
+            name = item.get("stopName") or item.get("stopDesc") or item.get("stop_name") or item.get("name") or "Przystanek"
             lat = item.get("stopLat", item.get("stop_lat", item.get("lat", item.get("latitude"))))
             lon = item.get("stopLon", item.get("stop_lon", item.get("lon", item.get("longitude"))))
             try:
                 lat, lon = float(lat), float(lon)
             except (TypeError, ValueError):
+                continue
+            if str(item.get("virtual", "0")) == "1" or str(item.get("nonpassenger", "0")) == "1" or str(item.get("depot", "0")) == "1":
                 continue
             if stop_id is not None and 53.8 <= lat <= 54.8 and 18.0 <= lon <= 19.2:
                 stops.append({"stopId": str(stop_id), "stopName": str(name), "lat": lat, "lon": lon})
@@ -373,10 +387,13 @@ async def get_departures(stop_id: str):
             response = await client.get(DEPARTURES_URL, params={"stopId": stop_id})
             response.raise_for_status()
             data = response.json()
-        item = data.get(str(stop_id), {}) if isinstance(data, dict) else {}
+        item = data if isinstance(data, dict) else {}
+        departures = item.get("departures", [])
+        if not isinstance(departures, list):
+            departures = []
         return {
             "lastUpdate": item.get("lastUpdate"),
-            "departures": item.get("departures", [])[:20],
+            "departures": departures[:20],
         }
     except Exception as error:
         return JSONResponse(status_code=502, content={"departures": [], "error": str(error)})
