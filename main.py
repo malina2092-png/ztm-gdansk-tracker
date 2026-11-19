@@ -101,6 +101,18 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  </div><p class="small-note">Numer brygady pojawi się, gdy potwierdzimy jego dostępność w danych GPS lub rozkładowych. Nie będziemy podstawiać fikcyjnych numerów.</p></div>
 </section>
 </main>
+<div id="appError" style="display:none;position:fixed;z-index:99999;left:10px;right:10px;bottom:10px;background:#fff0f0;color:#8b1e1e;border:1px solid #e6aaaa;border-radius:12px;padding:12px;font:13px/1.4 system-ui;max-height:35vh;overflow:auto"><b>Błąd aplikacji</b><div id="appErrorText"></div></div>
+<script>
+(function(){
+ function report(message){
+  const box=document.getElementById('appError');
+  const out=document.getElementById('appErrorText');
+  if(box&&out){box.style.display='block';out.textContent=String(message||'Nieznany błąd');}
+ }
+ window.addEventListener('error',function(e){report((e.message||'Błąd JavaScript')+(e.filename?' · '+e.filename.split('/').pop():'')+(e.lineno?':'+e.lineno:''));});
+ window.addEventListener('unhandledrejection',function(e){report('Promise: '+(e.reason&&e.reason.message||e.reason||'błąd'));});
+})();
+</script>
 <script>
 let map=null;
 function initMap(){
