@@ -30,7 +30,7 @@ def home():
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <style>
 :root{--bg:#f4f7fb;--surface:rgba(255,255,255,.88);--ink:#17243a;--muted:#718096;--line:#e7edf5;--blue:#3978e8;--blue-soft:#eaf1ff;--shadow:0 12px 34px rgba(34,55,91,.08)}
-*{box-sizing:border-box}
+*{box-sizing:border-box}\n#mapBrand{position:fixed;z-index:1500;top:13px;left:66px;padding:10px 14px;border:1px solid rgba(255,255,255,.9);border-radius:12px;background:rgba(255,255,255,.94);color:#17243a;font-size:15px;font-weight:850;letter-spacing:-.3px;box-shadow:0 5px 18px rgba(34,55,91,.12);backdrop-filter:blur(12px);pointer-events:none}
 body{margin:0;background:radial-gradient(circle at 10% 0%,#e9f1ff 0,transparent 32%),var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
 header{position:fixed;z-index:1100;top:14px;right:16px;padding:0;display:flex;align-items:center;justify-content:flex-end;gap:12px;pointer-events:none}header .brand{display:none}header .live-pill{pointer-events:auto;box-shadow:var(--shadow)}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,#5d94f3,#3267d6);display:grid;place-items:center;color:white;font-size:24px;box-shadow:0 8px 18px #3978e833}
@@ -89,7 +89,7 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 </style>
 </head>
 <body class="menu-closed">
-<button id="menuToggle" onclick="toggleMenu()" aria-label="Otwórz lub zamknij menu">☰</button>
+<button id="menuToggle" onclick="toggleMenu()" aria-label="Otwórz lub zamknij menu">☰</button>\n<div id="mapBrand" aria-label="Nazwa aplikacji">Transportie</div>
 <div id="mapZoom" aria-label="Przybliżenie mapy"><button type="button" onclick="zoomMap(1)" aria-label="Przybliż">+</button><button type="button" onclick="zoomMap(-1)" aria-label="Oddal">−</button></div>
 <button id="myLocation" onclick="locateUser()" aria-label="Pokaż moją lokalizację"><span class="loc-icon">◎</span><span>Moja lokalizacja</span></button><div id="locationStatus" aria-live="polite">Kliknij, aby pokazać swoją pozycję na mapie.</div>
 <header>
@@ -165,7 +165,7 @@ let map=null;let allStops=[];
 function initMap(){
  try{
   if(!window.L||map)return;
-  map=L.map('map',{zoomControl:false,attributionControl:false}).setView([54.3520,18.6466],12);L.control.attribution({prefix:'🇵🇱 Polska'}).addTo(map);map.on('zoomend',refreshTooltips);
+  map=L.map('map',{zoomControl:false,attributionControl:false}).setView([54.3520,18.6466],12);L.control.attribution({prefix:'🇵🇱'}).addTo(map);map.on('zoomend',refreshTooltips);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
  }catch(e){console.error('Map init:',e);}
 }
