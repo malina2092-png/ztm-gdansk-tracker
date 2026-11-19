@@ -99,6 +99,44 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  section:not(#mapa).active .surface{padding:10px}
  section:not(#mapa).active table{font-size:11px}
 }
+
+/* Responsywne panele tabel — bez przewijania poziomego */
+@media(max-width:850px){
+ section:not(#mapa).active{
+  margin-left:0!important;
+  width:100%!important;
+  max-width:100vw!important;
+  min-width:0!important;
+  padding:76px 12px 22px!important;
+  overflow-x:hidden!important;
+ }
+ section:not(#mapa).active .surface{
+  width:100%;max-width:100%;min-width:0;padding:12px!important;
+ }
+ section:not(#mapa).active .section-head{margin:0 0 12px}
+ section:not(#mapa).active .toolbar{width:100%;gap:8px}
+ section:not(#mapa).active .toolbar input{width:100%;max-width:none;min-width:0;flex:1 1 100%}
+ section:not(#mapa).active .toolbar button{flex:1 1 auto}
+ .table-wrap{width:100%;max-width:100%;overflow-x:hidden}
+ .table-wrap table{width:100%;min-width:0!important;table-layout:fixed;font-size:12px}
+ .table-wrap th,.table-wrap td{padding:10px 6px;overflow-wrap:anywhere;word-break:break-word}
+ .table-wrap th{font-size:9px;letter-spacing:0}
+}
+@media(max-width:520px){
+ section:not(#mapa).active{padding:72px 10px 18px!important}
+ section:not(#mapa).active .surface{padding:10px!important;border-radius:14px}
+ section:not(#mapa).active h2{font-size:19px}
+ section:not(#mapa).active .hint{font-size:11px;line-height:1.4}
+ #activeTable .table-wrap th:nth-child(4),#activeTable .table-wrap td:nth-child(4),
+ #activeTable .table-wrap th:nth-child(5),#activeTable .table-wrap td:nth-child(5),
+ #lineResults .table-wrap th:nth-child(4),#lineResults .table-wrap td:nth-child(4),
+ #lineResults .table-wrap th:nth-child(5),#lineResults .table-wrap td:nth-child(5){display:none}
+ #activeTable .table-wrap th:nth-child(1),#lineResults .table-wrap th:nth-child(1){width:36%}
+ #activeTable .table-wrap th:nth-child(2),#lineResults .table-wrap th:nth-child(2){width:30%}
+ #activeTable .table-wrap th:nth-child(3),#lineResults .table-wrap th:nth-child(3){width:34%}
+ #activeTable .table-wrap td,#lineResults .table-wrap td{font-size:11px;padding:11px 6px}
+}
+
 </style>
 </head>
 <body class="menu-closed">
