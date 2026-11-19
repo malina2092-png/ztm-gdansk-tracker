@@ -62,11 +62,11 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  <div class="live-pill"><span class="dot"></span><span id="connection">Łączenie z GPS</span></div>
 </header>
 <nav>
- <a class="active" href="#mapa">🗺️ Mapa</a>
- <a href="#ulubione">⭐ Ulubione</a>
- <a href="#wyjechalo">🚌 Co wyjechało</a>
- <a href="#linia">🔎 Pojazdy na linii</a>
- <a href="#ustawienia">⚙️ Ustawienia</a>
+ <button class="active" onclick="showSection('mapa',this)">🗺️ Mapa</button>
+ <button onclick="showSection('ulubione',this)">⭐ Ulubione</button>
+ <button onclick="showSection('wyjechalo',this)">🚌 Co wyjechało</button>
+ <button onclick="showSection('linia',this)">🔎 Pojazdy na linii</button>
+ <button onclick="showSection('ustawienia',this)">⚙️ Ustawienia</button>
 </nav>
 <main>
 <section id="mapa" class="active">
