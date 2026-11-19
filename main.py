@@ -101,11 +101,26 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  </div><p class="small-note">Numer brygady pojawi się, gdy potwierdzimy jego dostępność w danych GPS lub rozkładowych. Nie będziemy podstawiać fikcyjnych numerów.</p></div>
 </section>
 </main>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
 let map=null;
-try{if(window.L){map=L.map('map').setView([54.3520,18.6466],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);}}catch(e){console.error('Map init:',e);}
+function initMap(){
+ try{
+  if(!window.L||map)return;
+  map=L.map('map').setView([54.3520,18.6466],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+ }catch(e){console.error('Map init:',e);}
+}
+function loadMapLibrary(){
+ if(window.L){initMap();return;}
+ const script=document.createElement('script');
+ script.src='https://unpkg.com/leaflet/dist/leaflet.js';
+ script.async=true;
+ script.onload=()=>{initMap();if(typeof updateVehicles==='function')updateVehicles();};
+ script.onerror=()=>console.warn('Mapa niedostępna — pozostałe funkcje działają dalej.');
+ document.head.appendChild(script);
+}
 const markers={};let vehicles=[];
+loadMapLibrary();
 let labelSettings={line:true,brigade:false,fleet:true};
 try{const saved=JSON.parse(localStorage.getItem('transportie-labels')||'null');if(saved)labelSettings={...labelSettings,...saved};}catch(e){}
 document.getElementById('showLine').checked=labelSettings.line;
