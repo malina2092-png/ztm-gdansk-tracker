@@ -165,7 +165,7 @@ let map=null;let allStops=[];
 function initMap(){
  try{
   if(!window.L||map)return;
-  map=L.map('map',{zoomControl:false}).setView([54.3520,18.6466],12);map.on('zoomend',refreshTooltips);
+  map=L.map('map',{zoomControl:false,attributionControl:false}).setView([54.3520,18.6466],12);L.control.attribution({prefix:'🇵🇱 Polska'}).addTo(map);map.on('zoomend',refreshTooltips);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
  }catch(e){console.error('Map init:',e);}
 }
