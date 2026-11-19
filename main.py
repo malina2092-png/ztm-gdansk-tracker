@@ -333,7 +333,7 @@ async function updateVehicles(){
    }else{
     const marker=L.marker([lat,lon],{icon:icon}).addTo(map);marker._transportieVehicle=v;marker.on('click',()=>openVehicleDetails(marker._transportieVehicle));
     marker._transportieIconHtml=icon.options&&icon.options.html||'';
-    marker._transportiePopup=popup;
+    
     markers[id]=marker;
    }
   }
