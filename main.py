@@ -285,7 +285,66 @@ function vehicleIcon(v){const label=labelFor(v);const tram=isTram(v);const color
 function formatDelaySeconds(value){if(value===null||value===undefined||value===''||!Number.isFinite(Number(value)))return 'brak danych';const minutes=Math.round(Number(value)/60);if(minutes>0)return '+'+minutes+' min';if(minutes<0)return Math.abs(minutes)+' min przed czasem';return 'punktualnie';}
 function vehicleField(label,value,extra){if(value===undefined||value===null||value==='')return '';return '<div class="vehicle-detail-field"><span>'+safe(label)+'</span><b '+(extra||'')+'>'+safe(value)+'</b></div>';}
 function vehicleValue(v,keys){for(const key of keys){if(v[key]!==undefined&&v[key]!==null&&v[key]!=='')return v[key];}return null;}
-function openVehicleDetails(v){if(!v)return;const overlay=document.getElementById('vehicleDetailOverlay'),content=document.getElementById('vehicleDetailContent');if(!overlay||!content)return;const tram=isTram(v),line=vehicleValue(v,['routeShortName','route','line']),fleet=vehicleValue(v,['vehicleCode','fleetNumber']),direction=vehicleValue(v,['destination','headsign','direction','finalStop','tripHeadsign']),delay=formatDelaySeconds(vehicleValue(v,['delayInSeconds','delay'])),lat=vehicleValue(v,['lat','latitude']),lon=vehicleValue(v,['lon','longitude']),speed=vehicleValue(v,['speed','speedKmh','velocity']),heading=vehicleValue(v,['bearing','heading','directionDegrees']),service=vehicleValue(v,['vehicleService','service','serviceId']),next=Array.isArray(v.nextStops)?v.nextStops:[],stops=next.length?next.map((s,i)=>'<div class="course-stop"><span class="course-stop-index">'+(i+1)+'</span><span><b>'+safe(s.name||s.stopName||s.stop_name||s.stop||'Przystanek')+'</b>'+(s.time||s.arrivalTime||s.estimatedTime?'<small>'+safe(s.time||s.arrivalTime||s.estimatedTime)+'</small>':'')+'</span></div>').join(''):'<div class="vehicle-detail-empty">Dane ZTM nie udostępniają obecnie listy przystanków tego kursu.</div>';const fields=vehicleField('Numer taborowy','#'+(fleet==null?'—':fleet))+vehicleField('Brygada',brigadeFor(v))+vehicleField('Przewoźnik',v.carrier)+vehicleField('Kierunek',direction)+vehicleField('Opóźnienie',delay,'class="vehicle-delay"')+vehicleField('Prędkość',speed==null?null:String(speed)+' km/h')+vehicleField('Identyfikator kursu',vehicleValue(v,['tripId','trip_id','courseId']))+vehicleField('Usługa ZTM',service)+vehicleField('Szerokość geograficzna',lat)+vehicleField('Długość geograficzna',lon)+vehicleField('Kierunek jazdy',heading==null?null:String(heading)+'°')+vehicleField('Ostatnia aktualizacja GPS',vehicleValue(v,['lastUpdate','timestamp','gpsTime','updatedAt']));let technical='';const info=v.fleetInfo&&typeof v.fleetInfo==='object'?v.fleetInfo:{};const labels={vehicleCode:'Numer taborowy',brand:'Marka',model:'Model',vehicleType:'Typ pojazdu',type:'Typ',productionYear:'Rok produkcji',year:'Rok produkcji',carrier:'Przewoźnik',operator:'Operator',capacity:'Pojemność',lowFloor:'Niska podłoga',registrationNumber:'Numer rejestracyjny',registration:'Rejestracja',depot:'Zajezdnia'};const technicalRows=Object.entries(info).filter(([k,val])=>val!==null&&val!==''&&typeof val!=='object').map(([k,val])=>'<div><small>'+safe(labels[k]||k.replace(/([A-Z])/g,' $1').replace(/[_-]/g,' '))+'</small><b>'+safe(typeof val==='boolean'?(val?'Tak':'Nie'):val)+'</b></div>').join('');if(technicalRows)technical='<div class="vehicle-detail-section"><h3>Dane pojazdu</h3><div class="vehicle-technical-list">'+technicalRows+'</div></div>';const knownGps=new Set(['vehicleCode','routeShortName','route','line','destination','headsign','direction','finalStop','tripHeadsign','delayInSeconds','delay','lat','latitude','lon','longitude','speed','speedKmh','velocity','bearing','heading','directionDegrees','vehicleService','service','serviceId','carrier','fleetInfo','nextStops','tripId','trip_id','courseId','lastUpdate','timestamp','gpsTime','updatedAt']);const extraGps=Object.entries(v).filter(([k,val])=>!knownGps.has(k)&&val!==null&&val!==''&&typeof val!=='object').map(([k,val])=>'<div><small>'+safe(k.replace(/([A-Z])/g,' $1').replace(/[_-]/g,' '))+'</small><b>'+safe(typeof val==='boolean'?(val?'Tak':'Nie'):val)+'</b></div>').join('');if(extraGps)technical+='<div class="vehicle-detail-section"><h3>Pozostałe dane GPS</h3><div class="vehicle-technical-list">'+extraGps+'</div></div>';content.innerHTML='<div class="vehicle-detail-head"><div class="vehicle-detail-line">'+safe(line||'—')+'</div><div><div class="vehicle-detail-type">'+(tram?'🚊 Tramwaj':'🚌 Autobus')+' · POJAZD LIVE</div><div class="vehicle-detail-title">#'+safe(fleet||'—')+'</div><div class="vehicle-detail-subtitle">Linia '+safe(line||'brak danych')+' · '+safe(direction||'kierunek nieznany')+'</div><span class="vehicle-live-status">Pozycja GPS na żywo</span></div></div><div class="vehicle-detail-section"><h3>Informacje o kursie</h3><div class="vehicle-detail-grid">'+(fields||'<div class="vehicle-detail-empty">Brak dodatkowych danych z GPS.</div>')+'</div></div><div class="vehicle-detail-section"><h3>Trasa i przystanki</h3><div class="vehicle-detail-stops">'+stops+'</div></div>'+technical+'<div class="vehicle-detail-section"><div class="vehicle-detail-empty">Dane pozycji pochodzą z GPS ZTM. Karta odświeża się razem z danymi pojazdu.</div></div>';overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');document.body.classList.add('vehicle-detail-open');selectedVehicleCode=String(v.vehicleCode||'');}
+function openVehicleDetails(v){
+ if(!v)return;
+ const overlay=document.getElementById('vehicleDetailOverlay'),content=document.getElementById('vehicleDetailContent');
+ if(!overlay||!content)return;
+ const info=v.fleetInfo&&typeof v.fleetInfo==='object'?v.fleetInfo:{};
+ const get=(obj,keys)=>vehicleValue(obj,keys);
+ const line=get(v,['routeShortName','route','line']);
+ const fleet=get(v,['vehicleCode','fleetNumber']);
+ const carrier=get(v,['carrier'])||get(info,['carrier','carrirer','operator']);
+ const delay=formatDelaySeconds(get(v,['delayInSeconds','delay']));
+ const speed=get(v,['speed','speedKmh','velocity']);
+ const direction=get(v,['headsign','destination','direction','finalStop','tripHeadsign']);
+ const brigade=brigadeFor(v);
+ const fields=
+  vehicleField('Linia',line)+
+  vehicleField('Brygada',brigade)+
+  vehicleField('Numer taborowy',fleet==null?null:'#'+fleet)+
+  vehicleField('Przewoźnik',carrier)+
+  vehicleField('Opóźnienie',delay,'class="vehicle-delay"')+
+  vehicleField('Prędkość',speed==null?null:String(speed)+' km/h');
+ const stops=Array.isArray(v.nextStops)?v.nextStops:[];
+ const stopRows=stops.map((s,i)=>{
+  const name=typeof s==='string'?s:(s.name||s.stopName||s.stop_name||s.stop||s.stop_name_pl);
+  const time=typeof s==='object'?(s.time||s.arrivalTime||s.estimatedTime||s.departureTime):null;
+  return '<div class="course-stop"><span class="course-stop-index">'+(i+1)+'</span><span><b>'+safe(name||'Przystanek')+'</b>'+(time?'<small>'+safe(time)+'</small>':'')+'</span></div>';
+ }).join('');
+ const routeText=direction?'<div class="vehicle-route-direction">Kierunek: <b>'+safe(direction)+'</b></div>':'';
+ const routeStops='<div class="vehicle-detail-section"><h3>Trasa i przystanki</h3>'+
+  (line?'<div class="vehicle-route-line">Linia <b>'+safe(line)+'</b></div>':'')+
+  routeText+
+  '<div class="vehicle-detail-stops">'+(stopRows||'<div class="vehicle-detail-empty">Lista przystanków tego kursu nie jest obecnie dostępna w danych GPS ZTM.</div>')+'</div></div>';
+ const specs=[
+  ['Marka',['brand','make','manufacturer']],
+  ['Model',['model','vehicleModel']],
+  ['Liczba siedzeń',['seats','seatCount','seatingCapacity','numberOfSeats','placesSeated']],
+  ['Długość autobusu',['length','vehicleLength','lengthMeters','length_m']],
+  ['Rok produkcji',['productionYear','year','manufactureYear']],
+  ['Miejsca stojące',['standingPlaces','standing','standingCapacity','placesStanding']],
+  ['USB',['usb','USB','hasUsb','usbPorts']],
+  ['AED',['aed','AED','hasAed']],
+  ['Rampa',['ramp','hasRamp','wheelchairRamp']],
+  ['Typ autobusu',['busType','vehicleType','type','vehicle_kind']],
+  ['Ilość drzwi',['doors','doorCount','numberOfDoors']]
+ ];
+ const technicalRows=specs.map(([label,keys])=>{
+  const value=get(info,keys)||get(v,keys);
+  if(value===null)return '';
+  const display=typeof value==='boolean'?(value?'Tak':'Nie'):String(value)+(label==='Długość autobusu'&&!/m\s*$/.test(String(value))?' m':'');
+  return vehicleField(label,display);
+ }).join('');
+ const technical=technicalRows?'<div class="vehicle-detail-section"><h3>Dane techniczne</h3><div class="vehicle-detail-grid">'+technicalRows+'</div></div>':'';
+ content.innerHTML=
+  '<div class="vehicle-detail-head"><div class="vehicle-detail-line">'+safe(line||'—')+'</div><div><div class="vehicle-detail-type">'+(isTram(v)?'🚊 Tramwaj':'🚌 Autobus')+' · POJAZD LIVE</div><div class="vehicle-detail-title">#'+safe(fleet||'—')+'</div><span class="vehicle-live-status">Pozycja GPS na żywo</span></div></div>'+
+  '<div class="vehicle-detail-section"><h3>Informacje o pojeździe</h3><div class="vehicle-detail-grid">'+(fields||'<div class="vehicle-detail-empty">Brak danych pojazdu.</div>')+'</div></div>'+
+  routeStops+technical;
+ overlay.classList.add('open');
+ overlay.setAttribute('aria-hidden','false');
+ document.body.classList.add('vehicle-detail-open');
+ selectedVehicleCode=String(v.vehicleCode||'');
+}
 function closeVehicleDetails(){const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open');selectedVehicleCode=null;}
 window.openVehicleDetails=openVehicleDetails;window.closeVehicleDetails=closeVehicleDetails;
 let selectedVehicleCode=null;
