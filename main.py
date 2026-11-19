@@ -323,13 +323,13 @@ async function updateVehicles(){
    if(!id||!Number.isFinite(lat)||!Number.isFinite(lon))continue;
    active.add(id);
    if(!map)continue;
-   const icon=vehicleIcon(v),popup=vehiclePopup(v);
+   const icon=vehicleIcon(v);
    if(markers[id]){
     const marker=markers[id],pos=marker.getLatLng();marker._transportieVehicle=v;
     if(Math.abs(pos.lat-lat)>0.00001||Math.abs(pos.lng-lon)>0.00001)marker.setLatLng([lat,lon]);
     const nextIcon=icon.options&&icon.options.html||'';
     if(marker._transportieIconHtml!==nextIcon){marker.setIcon(icon);marker._transportieIconHtml=nextIcon;}
-    if(marker._transportiePopup!==popup){marker._transportiePopup=popup;}if(selectedVehicleCode===id)openVehicleDetails(v);
+    if(selectedVehicleCode===id)openVehicleDetails(v);
    }else{
     const marker=L.marker([lat,lon],{icon:icon}).addTo(map);marker._transportieVehicle=v;marker.on('click',()=>openVehicleDetails(marker._transportieVehicle));
     marker._transportieIconHtml=icon.options&&icon.options.html||'';
