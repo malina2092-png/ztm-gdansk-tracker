@@ -366,7 +366,8 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   const lat=vehicle&&vehicle.lat!=null?vehicle.lat:'';
   const lon=vehicle&&vehicle.lon!=null?vehicle.lon:'';
   const delay=vehicle&&vehicle.delay!=null?vehicle.delay:'';
-  const query='?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&delay='+encodeURIComponent(delay);
+  const service=vehicle&&vehicle.vehicleService!=null?vehicle.vehicleService:'';
+  const query='?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&delay='+encodeURIComponent(delay)+'&vehicle_service='+encodeURIComponent(service);
   const response=await fetch('/api/vehicle-route/'+encodeURIComponent(routeId)+'/'+encodeURIComponent(tripId)+query);
   const data=await response.json();
   if(String(selectedVehicleCode)!==String(vehicleCode))return;
@@ -380,9 +381,10 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   box.innerHTML=stops.map((stop,index)=>{
    const time=stop.estimatedTime&&stop.scheduledTime
     ?'<span class="course-stop-time"><s>'+safe(stop.scheduledTime)+'</s><strong>'+safe(stop.estimatedTime)+'</strong></span>'
-    :'<span class="course-stop-time">'+safe(stop.estimatedTime||stop.scheduledTime||'')+'</span>';
+    :'<span class="course-stop-time">'+safe(stop.estimatedTime||stop.scheduledTime||'—')+'</span>';
    const passed=index<currentIndex?' passed':'';
-   return '<div class="course-stop'+passed+'" data-stop-index="'+index+'"><span class="course-stop-marker" aria-hidden="true"></span><span class="course-stop-name"><b><span class="course-stop-number">'+safe(stop.sequence||index+1)+'.</span>'+safe(stop.name||'Przystanek')+'</b>'+(stop.code?'<small>Nr przystanku: '+safe(stop.code)+'</small>':'')+'</span>'+time+'</div>';
+   const stopLabel=(stop.name||'Przystanek')+(stop.code&&!String(stop.name||'').endsWith(String(stop.code))?' '+stop.code:'');
+   return '<div class="course-stop'+passed+'" data-stop-index="'+index+'"><span class="course-stop-marker" aria-hidden="true"></span><span class="course-stop-name"><b>'+safe(stopLabel)+'</b></span>'+time+'</div>';
   }).join('');
   if(currentIndex>0){
    window.setTimeout(()=>{
@@ -795,7 +797,7 @@ async def get_stops():
 
 
 @app.get("/api/vehicle-route/{route_id}/{trip_id}")
-async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon: float = None, delay: float = None):
+async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon: float = None, delay: float = None, vehicle_service: str = None):
     """Return the ordered passenger stops and timetable times for the exact live trip."""
     global _stops_in_trips_cache, _stops_in_trips_loaded_at, _stops_cache, _stops_loaded_at
     try:
@@ -889,18 +891,23 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 cached = {"loaded_at": time.time(), "records": schedule_records if isinstance(schedule_records, list) else []}
                 _stop_times_cache[cache_key] = cached
             schedule_rows = cached.get("records", [])
-            # Match the live vehicle task as well as route variant when available.
-            service_name = None
-            # vehicleService is passed by the live GPS feed as xxx-yy.
-            # It is added to the query below by the frontend.
-            for item in schedule_rows:
-                if not isinstance(item, dict):
-                    continue
-                if str(item.get("routeId")) != str(route_id) or str(item.get("tripId")) != str(trip_id):
-                    continue
+            matching_schedule = [
+                item for item in schedule_rows
+                if isinstance(item, dict)
+                and str(item.get("routeId")) == str(route_id)
+                and str(item.get("tripId")) == str(trip_id)
+            ]
+            if vehicle_service:
+                exact_service = [
+                    item for item in matching_schedule
+                    if str(item.get("busServiceName") or item.get("vehicleService") or "") == str(vehicle_service)
+                ]
+                if exact_service:
+                    matching_schedule = exact_service
+            for item in matching_schedule:
                 sid = item.get("stopId")
                 if sid is not None:
-                    scheduled_by_stop[str(sid)] = item.get("arrivalTime") or item.get("departureTime")
+                    scheduled_by_stop[str(sid)] = item.get("departureTime") or item.get("arrivalTime")
         except Exception:
             scheduled_by_stop = {}
 
@@ -915,9 +922,13 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             estimated_time = None
             if time_value:
                 try:
-                    parsed = datetime.fromisoformat(str(time_value).replace("Z", "+00:00"))
+                    raw_time = str(time_value).replace("Z", "+00:00")
+                    try:
+                        parsed = datetime.fromisoformat(raw_time)
+                    except ValueError:
+                        parsed = datetime.strptime(raw_time[:8], "%H:%M:%S")
                     scheduled_time = parsed.strftime("%H:%M")
-                    if delay is not None and delay > 0:
+                    if delay is not None and delay != 0:
                         adjusted = datetime(2000, 1, 1, parsed.hour, parsed.minute, parsed.second) + timedelta(seconds=delay)
                         estimated_time = adjusted.strftime("%H:%M")
                 except (TypeError, ValueError):
