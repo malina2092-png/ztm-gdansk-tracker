@@ -301,6 +301,8 @@ function openVehicleDetails(v){
  const speed=get(v,['speed','speedKmh','velocity']);
  const direction=get(v,['headsign','destination','direction','finalStop','tripHeadsign']);
  const brigade=brigadeFor(v);
+ const routeId=get(v,['routeId','route_id']);
+ const tripId=get(v,['tripId','trip_id']);
  const fields=
   vehicleField('Linia',line)+
   vehicleField('Brygada',brigade)+
@@ -308,17 +310,11 @@ function openVehicleDetails(v){
   vehicleField('Przewoźnik',carrier)+
   vehicleField('Opóźnienie',delay,'class="vehicle-delay"')+
   vehicleField('Prędkość',speed==null?null:String(speed)+' km/h');
- const stops=Array.isArray(v.nextStops)?v.nextStops:[];
- const stopRows=stops.map((s,i)=>{
-  const name=typeof s==='string'?s:(s.name||s.stopName||s.stop_name||s.stop||s.stop_name_pl);
-  const time=typeof s==='object'?(s.time||s.arrivalTime||s.estimatedTime||s.departureTime):null;
-  return '<div class="course-stop"><span class="course-stop-index">'+(i+1)+'</span><span><b>'+safe(name||'Przystanek')+'</b>'+(time?'<small>'+safe(time)+'</small>':'')+'</span></div>';
- }).join('');
- const routeText=direction?'<div class="vehicle-route-direction">Kierunek: <b>'+safe(direction)+'</b></div>':'';
  const routeStops='<div class="vehicle-detail-section"><h3>Trasa i przystanki</h3>'+
   (line?'<div class="vehicle-route-line">Linia <b>'+safe(line)+'</b></div>':'')+
-  routeText+
-  '<div class="vehicle-detail-stops">'+(stopRows||'<div class="vehicle-detail-empty">Lista przystanków tego kursu nie jest obecnie dostępna w danych GPS ZTM.</div>')+'</div></div>';
+  (direction?'<div class="vehicle-route-direction">Kierunek: <b>'+safe(direction)+'</b></div>':'')+
+  '<div id="vehicleRouteStops" class="vehicle-detail-stops"><div class="vehicle-detail-empty">Pobieranie przystanków z rozkładu ZTM…</div></div></div>';
+
  const specs=[
   ['Marka',['brand','make','manufacturer']],
   ['Model',['model','vehicleModel']],
@@ -347,6 +343,30 @@ function openVehicleDetails(v){
  overlay.setAttribute('aria-hidden','false');
  document.body.classList.add('vehicle-detail-open');
  selectedVehicleCode=String(v.vehicleCode||'');
+ loadVehicleRouteStops(routeId,tripId,selectedVehicleCode);
+}
+async function loadVehicleRouteStops(routeId,tripId,vehicleCode){
+ const box=document.getElementById('vehicleRouteStops');
+ if(!box)return;
+ if(routeId==null||tripId==null){
+  box.innerHTML='<div class="vehicle-detail-empty">GPS nie przekazał identyfikatora wariantu kursu, więc nie można dopasować dokładnej listy przystanków.</div>';
+  return;
+ }
+ try{
+  const response=await fetch('/api/vehicle-route/'+encodeURIComponent(routeId)+'/'+encodeURIComponent(tripId));
+  const data=await response.json();
+  if(String(selectedVehicleCode)!==String(vehicleCode))return;
+  if(!response.ok)throw new Error(data.error||'Błąd pobierania rozkładu');
+  const stops=Array.isArray(data.stops)?data.stops:[];
+  if(!stops.length){
+   box.innerHTML='<div class="vehicle-detail-empty">ZTM nie zwrócił przystanków dla tego wariantu kursu.</div>';
+   return;
+  }
+  box.innerHTML=stops.map((stop,index)=>'<div class="course-stop"><span class="course-stop-index">'+(index+1)+'</span><span><b>'+safe(stop.name||'Przystanek')+'</b>'+(stop.code?'<small>Słupek '+safe(stop.code)+'</small>':'')+'</span></div>').join('');
+ }catch(error){
+  if(String(selectedVehicleCode)!==String(vehicleCode))return;
+  box.innerHTML='<div class="vehicle-detail-empty">'+safe(error.message||'Nie udało się pobrać listy przystanków.')+'</div>';
+ }
 }
 function closeVehicleDetails(){const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open');selectedVehicleCode=null;}
 window.openVehicleDetails=openVehicleDetails;window.closeVehicleDetails=closeVehicleDetails;
