@@ -140,11 +140,11 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  </div><p class="small-note">Widoczne będą wyłącznie dane potwierdzone w źródłach ZTM.</p><div class="small-note" id="mapLabelSummary">Etykiety: —</div><div class="small-note" id="dataStatus">Połączenie z danymi: oczekiwanie…</div><div class="small-note" id="lastUpdateSettings">Ostatnia aktualizacja: —</div><div class="small-note" id="vehicleCountSettings">Widoczne pojazdy: —</div></div>
 </section>
 <section id="konto">
- <div class="section-head"><div><h2>Konto użytkownika</h2><div class="hint">Zaloguj się lub utwórz konto Transportie</div></div></div>
+ <div class="section-head"><div><h2>Konto użytkownika</h2><div class="hint">Konto Transportie — bez adresu e-mail</div></div></div>
  <div class="surface" style="max-width:520px">
   <div id="authStatus" class="small-note">Sprawdzanie konfiguracji konta…</div>
-  <div id="authForms"><label class="small-note" for="authEmail">Adres e-mail</label><input id="authEmail" type="email" autocomplete="email" placeholder="adres@email.com" style="width:100%;margin:6px 0 12px"><label class="small-note" for="authPassword">Hasło</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Hasło" style="width:100%;margin:6px 0 12px"><div class="toolbar"><button class="primary" onclick="loginUser()">Zaloguj się</button><button class="secondary" onclick="registerUser()">Utwórz konto</button></div></div>
-  <div id="accountPanel" style="display:none"><b id="accountEmail"></b><p class="small-note">Jesteś zalogowany/a.</p><button class="secondary" onclick="logoutUser()">Wyloguj</button></div>
+  <div id="authForms"><label class="small-note" for="authUsername">Nazwa użytkownika</label><input id="authUsername" type="text" autocomplete="username" autocapitalize="none" placeholder="np. pasjonat_ztm" maxlength="24" style="width:100%;margin:6px 0 12px"><label class="small-note" for="authPassword">Hasło</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Minimum 8 znaków" style="width:100%;margin:6px 0 12px"><div class="toolbar"><button class="primary" onclick="loginUser()">Zaloguj się</button><button class="secondary" onclick="registerUser()">Utwórz konto</button></div><p class="small-note">Nazwa: 3–24 znaki, litery bez polskich znaków, cyfry, kropka lub podkreślenie. Hasło: minimum 8 znaków. Nie ma odzyskiwania hasła przez e-mail.</p></div>
+  <div id="accountPanel" style="display:none"><b id="accountUsername"></b><p class="small-note">Jesteś zalogowany/a.</p><button class="secondary" onclick="logoutUser()">Wyloguj</button></div>
  </div>
 </section>
 </main>
@@ -198,10 +198,11 @@ async function showStopDepartures(id,name){const box=document.getElementById('se
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
 function getSession(){try{return JSON.parse(localStorage.getItem('transportie-session')||'null');}catch(e){return null;}}
 function showAuthMessage(msg){document.getElementById('authStatus').textContent=msg;}
-async function refreshAccount(){const session=getSession();const forms=document.getElementById('authForms'),panel=document.getElementById('accountPanel');if(session&&session.access_token){forms.style.display='none';panel.style.display='block';document.getElementById('accountEmail').textContent=session.user?.email||'Zalogowane konto';showAuthMessage('Konto aktywne');}else{forms.style.display='block';panel.style.display='none';try{const cfg=await authRequest('/api/auth/config');showAuthMessage(cfg.enabled?'Możesz się zalogować lub utworzyć konto.':'Logowanie wymaga konfiguracji Supabase w Render.');}catch(e){showAuthMessage(e.message);}}}
-async function loginUser(){const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;if(!email||!password){showAuthMessage('Wpisz e-mail i hasło.');return;}try{const data=await authRequest('/api/auth/login',{email,password});localStorage.setItem('transportie-session',JSON.stringify(data));document.getElementById('authPassword').value='';await refreshAccount();}catch(e){showAuthMessage(e.message);}}
-async function registerUser(){const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;if(!email||!password){showAuthMessage('Wpisz e-mail i hasło.');return;}if(password.length<8){showAuthMessage('Hasło musi mieć co najmniej 8 znaków.');return;}try{const data=await authRequest('/api/auth/signup',{email,password});if(data.access_token){localStorage.setItem('transportie-session',JSON.stringify(data));await refreshAccount();}else{showAuthMessage('Konto utworzone. Sprawdź pocztę, aby potwierdzić adres e-mail.');}}catch(e){showAuthMessage(e.message);}}
-async function logoutUser(){const session=getSession();try{if(session?.access_token)await authRequest('/api/auth/logout',{},session.access_token);}catch(e){}localStorage.removeItem('transportie-session');await refreshAccount();}
+function validUsername(username){return /^[a-zA-Z0-9._]{3,24}$/.test(username);}
+async function refreshAccount(){const session=getSession();const forms=document.getElementById('authForms'),panel=document.getElementById('accountPanel');if(session&&session.access_token){forms.style.display='none';panel.style.display='block';document.getElementById('accountUsername').textContent=localStorage.getItem('transportie-username')||'Zalogowane konto';showAuthMessage('Konto aktywne');}else{forms.style.display='block';panel.style.display='none';try{const cfg=await authRequest('/api/auth/config');showAuthMessage(cfg.enabled?'Zaloguj się lub utwórz konto, używając nazwy użytkownika.':'Logowanie wymaga konfiguracji Supabase w Render.');}catch(e){showAuthMessage(e.message);}}}
+async function loginUser(){const username=document.getElementById('authUsername').value.trim().toLowerCase(),password=document.getElementById('authPassword').value;if(!validUsername(username)||!password){showAuthMessage('Wpisz poprawną nazwę użytkownika i hasło.');return;}try{const data=await authRequest('/api/auth/login',{username,password});localStorage.setItem('transportie-session',JSON.stringify(data));localStorage.setItem('transportie-username',username);document.getElementById('authPassword').value='';await refreshAccount();}catch(e){showAuthMessage(e.message);}}
+async function registerUser(){const username=document.getElementById('authUsername').value.trim().toLowerCase(),password=document.getElementById('authPassword').value;if(!validUsername(username)){showAuthMessage('Nazwa musi mieć 3–24 znaki: litery a–z, cyfry, kropka lub podkreślenie.');return;}if(password.length<8){showAuthMessage('Hasło musi mieć co najmniej 8 znaków.');return;}try{const data=await authRequest('/api/auth/signup',{username,password});if(data.access_token){localStorage.setItem('transportie-session',JSON.stringify(data));localStorage.setItem('transportie-username',username);await refreshAccount();}else{showAuthMessage('Supabase nie zwrócił sesji. W panelu Supabase trzeba wyłączyć potwierdzanie adresu e-mail (Confirm email), ponieważ konta Transportie nie używają e-maila.');}}catch(e){showAuthMessage(e.message);}}
+async function logoutUser(){const session=getSession();try{if(session?.access_token)await authRequest('/api/auth/logout',{},session.access_token);}catch(e){}localStorage.removeItem('transportie-session');localStorage.removeItem('transportie-username');await refreshAccount();}
 window.toggleMenu=toggleMenu;window.locateUser=locateUser;window.searchStops=searchStops;window.loginUser=loginUser;window.registerUser=registerUser;window.logoutUser=logoutUser;
 function brigadeFor(v){const service=String(v.vehicleService||'');const match=service.match(/-(\d{2})$/);return match?match[1]:'—';}
 function labelFor(v){const parts=[];if(labelSettings.line)parts.push('Linia '+(v.routeShortName||'?'));if(labelSettings.brigade)parts.push('Brygada '+brigadeFor(v));if(labelSettings.fleet)parts.push('Tabor '+(v.vehicleCode||'?'));return parts.join(' · ')||'Pojazd';}
@@ -283,15 +284,18 @@ def auth_config():
 async def auth_signup(payload: dict):
     if not SUPABASE_URL or not SUPABASE_KEY:
         return JSONResponse(status_code=503, content={"message": "Logowanie nie jest skonfigurowane w Render."})
-    email = str(payload.get("email", "")).strip()
+    username = str(payload.get("username", "")).strip().lower()
     password = str(payload.get("password", ""))
-    if not email or len(password) < 8:
-        return JSONResponse(status_code=400, content={"message": "Podaj e-mail i hasło o długości co najmniej 8 znaków."})
+    if not __import__("re").fullmatch(r"[a-zA-Z0-9._]{3,24}", username) or len(password) < 8:
+        return JSONResponse(status_code=400, content={"message": "Nazwa użytkownika musi mieć 3–24 znaki (a–z, cyfry, kropka lub podkreślenie), a hasło minimum 8 znaków."})
+    # Supabase Auth requires an email identifier. A reserved .invalid address is generated
+    # internally; users never enter or receive email. Confirm-email must be disabled in Supabase.
+    internal_email = username + "@users.transportie.invalid"
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.post(
             SUPABASE_URL + "/auth/v1/signup",
             headers={"apikey": SUPABASE_KEY, "Content-Type": "application/json"},
-            json={"email": email, "password": password},
+            json={"email": internal_email, "password": password, "data": {"username": username}},
         )
     try:
         data = response.json()
@@ -304,15 +308,16 @@ async def auth_signup(payload: dict):
 async def auth_login(payload: dict):
     if not SUPABASE_URL or not SUPABASE_KEY:
         return JSONResponse(status_code=503, content={"message": "Logowanie nie jest skonfigurowane w Render."})
-    email = str(payload.get("email", "")).strip()
+    username = str(payload.get("username", "")).strip().lower()
     password = str(payload.get("password", ""))
-    if not email or not password:
-        return JSONResponse(status_code=400, content={"message": "Podaj e-mail i hasło."})
+    if not __import__("re").fullmatch(r"[a-zA-Z0-9._]{3,24}", username) or not password:
+        return JSONResponse(status_code=400, content={"message": "Podaj poprawną nazwę użytkownika i hasło."})
+    internal_email = username + "@users.transportie.invalid"
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.post(
             SUPABASE_URL + "/auth/v1/token?grant_type=password",
             headers={"apikey": SUPABASE_KEY, "Content-Type": "application/json"},
-            json={"email": email, "password": password},
+            json={"email": internal_email, "password": password},
         )
     try:
         data = response.json()
