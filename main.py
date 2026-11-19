@@ -295,24 +295,49 @@ def auth_config():
 async def auth_signup(payload: dict):
     if not SUPABASE_URL or not SUPABASE_KEY:
         return JSONResponse(status_code=503, content={"message": "Logowanie nie jest skonfigurowane w Render."})
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        return JSONResponse(status_code=503, content={"message": "Rejestracja wymaga dodania SUPABASE_SERVICE_ROLE_KEY w Render. Klucz ustaw wyłącznie w zmiennych środowiskowych."})
     username = str(payload.get("username", "")).strip().lower()
     password = str(payload.get("password", ""))
-    if not __import__("re").fullmatch(r"[a-zA-Z0-9._]{3,24}", username) or len(password) < 8:
+    if not __import__("re").fullmatch(r"[a-z0-9._]{3,24}", username) or len(password) < 8:
         return JSONResponse(status_code=400, content={"message": "Nazwa użytkownika musi mieć 3–24 znaki (a–z, cyfry, kropka lub podkreślenie), a hasło minimum 8 znaków."})
-    # Supabase Auth requires an email identifier. A reserved .invalid address is generated
-    # internally; users never enter or receive email. Confirm-email must be disabled in Supabase.
     internal_email = username + "@users.transportie.invalid"
-    async with httpx.AsyncClient(timeout=15) as client:
-        response = await client.post(
-            SUPABASE_URL + "/auth/v1/signup",
-            headers={"apikey": SUPABASE_KEY, "Content-Type": "application/json"},
-            json={"email": internal_email, "password": password, "data": {"username": username}},
-        )
-    try:
-        data = response.json()
-    except Exception:
-        data = {"message": "Nie udało się odczytać odpowiedzi usługi kont."}
-    return JSONResponse(status_code=response.status_code, content=data)
+    admin_headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": "Bearer " + SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=20) as client:
+        try:
+            created = await client.post(
+                SUPABASE_URL + "/auth/v1/admin/users",
+                headers=admin_headers,
+                json={
+                    "email": internal_email,
+                    "password": password,
+                    "email_confirm": True,
+                    "user_metadata": {"username": username},
+                    "app_metadata": {"transportie_role": "user"},
+                },
+            )
+        except httpx.HTTPError:
+            return JSONResponse(status_code=502, content={"message": "Nie udało się połączyć z usługą kont. Spróbuj ponownie."})
+        if created.status_code in (409, 422):
+            return JSONResponse(status_code=409, content={"message": "Ta nazwa użytkownika jest już zajęta. Wybierz inną."})
+        if created.status_code not in (200, 201):
+            return JSONResponse(status_code=502, content={"message": "Supabase odrzucił utworzenie konta. Sprawdź klucz administracyjny i konfigurację projektu."})
+        try:
+            signed_in = await client.post(
+                SUPABASE_URL + "/auth/v1/token?grant_type=password",
+                headers={"apikey": SUPABASE_KEY, "Content-Type": "application/json"},
+                json={"email": internal_email, "password": password},
+            )
+            data = signed_in.json()
+        except (httpx.HTTPError, ValueError):
+            return JSONResponse(status_code=502, content={"message": "Konto utworzono, ale automatyczne logowanie się nie powiodło. Zaloguj się ręcznie."})
+    if signed_in.status_code != 200:
+        return JSONResponse(status_code=502, content={"message": "Konto utworzono, ale automatyczne logowanie się nie powiodło. Zaloguj się ręcznie."})
+    return JSONResponse(status_code=200, content=data)
 
 
 @app.post("/api/auth/login")
