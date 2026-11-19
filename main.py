@@ -12,6 +12,8 @@ STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a2
 DEPARTURES_URL = "https://ckan2.multimediagdansk.pl/departures"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+OWNER_USERNAME = os.getenv("OWNER_USERNAME", "")
 _stops_cache = []
 _stops_loaded_at = 0
 _vehicle_db = {}
@@ -104,6 +106,7 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  <button onclick="showSection('odjazdy',this)">🚏 Odjazdy z przystanku</button>
  <button onclick="showSection('ustawienia',this)">⚙️ Ustawienia</button>
  <button onclick="showSection('konto',this)">👤 Konto</button>
+ <button id="adminNavButton" style="display:none" onclick="showSection('administracja',this)">🛡️ Administracja</button>
 </nav>
 <main>
 <section id="mapa" class="active">
@@ -146,6 +149,10 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
   <div id="authForms"><label class="small-note" for="authUsername">Nazwa użytkownika</label><input id="authUsername" type="text" autocomplete="username" autocapitalize="none" placeholder="np. pasjonat_ztm" maxlength="24" style="width:100%;margin:6px 0 12px"><label class="small-note" for="authPassword">Hasło</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Minimum 8 znaków" style="width:100%;margin:6px 0 12px"><div class="toolbar"><button class="primary" onclick="loginUser()">Zaloguj się</button><button class="secondary" onclick="registerUser()">Utwórz konto</button></div><p class="small-note">Nazwa: 3–24 znaki, litery bez polskich znaków, cyfry, kropka lub podkreślenie. Hasło: minimum 8 znaków. Nie ma odzyskiwania hasła przez e-mail.</p></div>
   <div id="accountPanel" style="display:none"><b id="accountUsername"></b><p class="small-note">Jesteś zalogowany/a.</p><button class="secondary" onclick="logoutUser()">Wyloguj</button></div>
  </div>
+</section>
+<section id="administracja">
+ <div class="section-head"><div><h2>Panel administracyjny</h2><div class="hint">Zarządzanie użytkownikami i rangami Transportie</div></div><button class="secondary" onclick="loadAdminUsers()">Odśwież listę</button></div>
+ <div class="surface"><div id="adminStatus" class="small-note">Panel dostępny tylko dla właściciela.</div><div id="adminUsers"></div></div>
 </section>
 </main>
 <div id="appError" style="display:none;position:fixed;z-index:99999;left:10px;right:10px;bottom:10px;background:#fff0f0;color:#8b1e1e;border:1px solid #e6aaaa;border-radius:12px;padding:12px;font:13px/1.4 system-ui;max-height:35vh;overflow:auto"><b>Błąd aplikacji</b><div id="appErrorText"></div></div>
@@ -199,11 +206,15 @@ async function authRequest(path,body,token){const headers={'Content-Type':'appli
 function getSession(){try{return JSON.parse(localStorage.getItem('transportie-session')||'null');}catch(e){return null;}}
 function showAuthMessage(msg){document.getElementById('authStatus').textContent=msg;}
 function validUsername(username){return /^[a-zA-Z0-9._]{3,24}$/.test(username);}
-async function refreshAccount(){const session=getSession();const forms=document.getElementById('authForms'),panel=document.getElementById('accountPanel');if(session&&session.access_token){forms.style.display='none';panel.style.display='block';document.getElementById('accountUsername').textContent=localStorage.getItem('transportie-username')||'Zalogowane konto';showAuthMessage('Konto aktywne');}else{forms.style.display='block';panel.style.display='none';try{const cfg=await authRequest('/api/auth/config');showAuthMessage(cfg.enabled?'Zaloguj się lub utwórz konto, używając nazwy użytkownika.':'Logowanie wymaga konfiguracji Supabase w Render.');}catch(e){showAuthMessage(e.message);}}}
-async function loginUser(){const username=document.getElementById('authUsername').value.trim().toLowerCase(),password=document.getElementById('authPassword').value;if(!validUsername(username)||!password){showAuthMessage('Wpisz poprawną nazwę użytkownika i hasło.');return;}try{const data=await authRequest('/api/auth/login',{username,password});localStorage.setItem('transportie-session',JSON.stringify(data));localStorage.setItem('transportie-username',username);document.getElementById('authPassword').value='';await refreshAccount();}catch(e){showAuthMessage(e.message);}}
-async function registerUser(){const username=document.getElementById('authUsername').value.trim().toLowerCase(),password=document.getElementById('authPassword').value;if(!validUsername(username)){showAuthMessage('Nazwa musi mieć 3–24 znaki: litery a–z, cyfry, kropka lub podkreślenie.');return;}if(password.length<8){showAuthMessage('Hasło musi mieć co najmniej 8 znaków.');return;}try{const data=await authRequest('/api/auth/signup',{username,password});if(data.access_token){localStorage.setItem('transportie-session',JSON.stringify(data));localStorage.setItem('transportie-username',username);await refreshAccount();}else{showAuthMessage('Supabase nie zwrócił sesji. W panelu Supabase trzeba wyłączyć potwierdzanie adresu e-mail (Confirm email), ponieważ konta Transportie nie używają e-maila.');}}catch(e){showAuthMessage(e.message);}}
-async function logoutUser(){const session=getSession();try{if(session?.access_token)await authRequest('/api/auth/logout',{},session.access_token);}catch(e){}localStorage.removeItem('transportie-session');localStorage.removeItem('transportie-username');await refreshAccount();}
-window.toggleMenu=toggleMenu;window.locateUser=locateUser;window.searchStops=searchStops;window.loginUser=loginUser;window.registerUser=registerUser;window.logoutUser=logoutUser;
+async function refreshAccount(){const session=getSession();const forms=document.getElementById('authForms'),panel=document.getElementById('accountPanel');if(session&&session.access_token){forms.style.display='none';panel.style.display='block';document.getElementById('accountUsername').textContent=localStorage.getItem('transportie-username')||'Zalogowane konto';showAuthMessage('Konto aktywne');}else{forms.style.display='block';panel.style.display='none';try{const cfg=await authRequest('/api/auth/config');showAuthMessage(cfg.enabled?'Zaloguj się lub utwórz konto, używając nazwy użytkownika.':'Logowanie wymaga konfiguracji Supabase w Render.');}catch(e){showAuthMessage(e.message);}}await updateAdminAccess();}
+async function loginUser(){const username=document.getElementById('authUsername').value.trim().toLowerCase(),password=document.getElementById('authPassword').value;if(!validUsername(username)||!password){showAuthMessage('Wpisz poprawną nazwę użytkownika i hasło.');return;}try{const data=await authRequest('/api/auth/login',{username,password});localStorage.setItem('transportie-session',JSON.stringify(data));localStorage.setItem('transportie-username',username);document.getElementById('authPassword').value='';await refreshAccount();await updateAdminAccess();}catch(e){showAuthMessage(e.message);}}
+async function registerUser(){const username=document.getElementById('authUsername').value.trim().toLowerCase(),password=document.getElementById('authPassword').value;if(!validUsername(username)){showAuthMessage('Nazwa musi mieć 3–24 znaki: litery a–z, cyfry, kropka lub podkreślenie.');return;}if(password.length<8){showAuthMessage('Hasło musi mieć co najmniej 8 znaków.');return;}try{const data=await authRequest('/api/auth/signup',{username,password});if(data.access_token){localStorage.setItem('transportie-session',JSON.stringify(data));localStorage.setItem('transportie-username',username);await refreshAccount();await updateAdminAccess();}else{showAuthMessage('Supabase nie zwrócił sesji. W panelu Supabase trzeba wyłączyć potwierdzanie adresu e-mail (Confirm email), ponieważ konta Transportie nie używają e-maila.');}}catch(e){showAuthMessage(e.message);}}
+async function logoutUser(){const session=getSession();try{if(session?.access_token)await authRequest('/api/auth/logout',{},session.access_token);}catch(e){}localStorage.removeItem('transportie-session');localStorage.removeItem('transportie-username');await refreshAccount();updateAdminAccess();}
+async function updateAdminAccess(){const button=document.getElementById('adminNavButton');if(!button)return;const session=getSession();if(!session?.access_token){button.style.display='none';return;}try{const info=await authRequest('/api/admin/me',null,session.access_token);button.style.display=info.is_owner?'block':'none';if(info.is_owner)loadAdminUsers();}catch(e){button.style.display='none';}}
+async function loadAdminUsers(){const session=getSession(),status=document.getElementById('adminStatus'),box=document.getElementById('adminUsers');if(!session?.access_token){status.textContent='Zaloguj się na konto właściciela.';return;}status.textContent='Pobieranie użytkowników…';try{const data=await authRequest('/api/admin/users',null,session.access_token);status.textContent='Liczba kont: '+data.users.length;box.innerHTML=data.users.map(u=>{const username=safe(u.username||'bez nazwy'),role=u.role||'user';const options=['user','moderator','admin'].map(r=>'<option value="'+r+'" '+(r===role?'selected':'')+'>'+({user:'Użytkownik',moderator:'Moderator',admin:'Administrator'}[r])+'</option>').join('');return '<div class="departure-row" style="align-items:center;flex-wrap:wrap"><span><b>'+username+'</b><br><small>'+safe(u.created_at||'')+'</small></span><span style="display:flex;gap:7px;align-items:center"><select data-admin-role="'+safe(u.id)+'" style="width:auto;min-width:135px">'+options+'</select><button class="secondary" data-save-role="'+safe(u.id)+'">Zapisz</button></span></div>';}).join('')||'<div class="empty">Brak kont.</div>';}catch(e){status.textContent=e.message;box.innerHTML='';}}
+async function saveUserRole(userId){const session=getSession(),select=document.querySelector('[data-admin-role="'+CSS.escape(userId)+'"]');if(!session?.access_token||!select)return;const button=document.querySelector('[data-save-role="'+CSS.escape(userId)+'"]');if(button)button.disabled=true;try{await authRequest('/api/admin/users/'+encodeURIComponent(userId)+'/role',{role:select.value},session.access_token);document.getElementById('adminStatus').textContent='Ranga została zmieniona.';await loadAdminUsers();}catch(e){document.getElementById('adminStatus').textContent=e.message;if(button)button.disabled=false;}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-save-role]');if(b)saveUserRole(b.getAttribute('data-save-role'));});
+window.toggleMenu=toggleMenu;window.locateUser=locateUser;window.searchStops=searchStops;window.loginUser=loginUser;window.registerUser=registerUser;window.logoutUser=logoutUser;window.loadAdminUsers=loadAdminUsers;
 function brigadeFor(v){const service=String(v.vehicleService||'');const match=service.match(/-(\d{2})$/);return match?match[1]:'—';}
 function labelFor(v){const parts=[];if(labelSettings.line)parts.push('Linia '+(v.routeShortName||'?'));if(labelSettings.brigade)parts.push('Brygada '+brigadeFor(v));if(labelSettings.fleet)parts.push('Tabor '+(v.vehicleCode||'?'));return parts.join(' · ')||'Pojazd';}
 function isTram(v){const route=String(v.routeShortName||'').trim();const service=String(v.vehicleType||v.type||v.vehicleService||'').toLowerCase();return service.includes('tram')||/^(2|3|4|5|6|7|8|9|10|11|12)$/.test(route);}
@@ -338,6 +349,98 @@ async def auth_logout(authorization: str = Header(default="")):
                 headers={"apikey": SUPABASE_KEY, "Authorization": "Bearer " + token},
             )
     return {"ok": True}
+
+
+async def get_authenticated_user(authorization: str):
+    token = authorization.replace("Bearer ", "", 1) if authorization.startswith("Bearer ") else ""
+    if not token or not SUPABASE_URL or not SUPABASE_KEY:
+        raise ValueError("Zaloguj się ponownie.")
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.get(
+            SUPABASE_URL + "/auth/v1/user",
+            headers={"apikey": SUPABASE_KEY, "Authorization": "Bearer " + token},
+        )
+    if response.status_code != 200:
+        raise ValueError("Sesja wygasła. Zaloguj się ponownie.")
+    return response.json()
+
+
+async def require_owner(authorization: str):
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Brakuje SUPABASE_SERVICE_ROLE_KEY w zmiennych Render.")
+    owner_name = OWNER_USERNAME.strip().lower()
+    if not owner_name:
+        raise RuntimeError("Ustaw OWNER_USERNAME w zmiennych Render na swoją nazwę użytkownika.")
+    user = await get_authenticated_user(authorization)
+    username = str((user.get("user_metadata") or {}).get("username", "")).strip().lower()
+    if username != owner_name:
+        raise PermissionError("Brak uprawnień właściciela.")
+    return user
+
+
+@app.get("/api/admin/me")
+async def admin_me(authorization: str = Header(default="")):
+    try:
+        user = await require_owner(authorization)
+        return {"is_owner": True, "username": (user.get("user_metadata") or {}).get("username", "")}
+    except Exception:
+        return {"is_owner": False}
+
+
+@app.get("/api/admin/users")
+async def admin_users(authorization: str = Header(default="")):
+    try:
+        await require_owner(authorization)
+    except PermissionError as error:
+        return JSONResponse(status_code=403, content={"message": str(error)})
+    except Exception as error:
+        return JSONResponse(status_code=503, content={"message": str(error)})
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + SUPABASE_SERVICE_ROLE_KEY}
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.get(SUPABASE_URL + "/auth/v1/admin/users", params={"page": 1, "per_page": 100}, headers=headers)
+            response.raise_for_status()
+            payload = response.json()
+        users = payload.get("users", []) if isinstance(payload, dict) else []
+        result = []
+        for item in users:
+            metadata = item.get("user_metadata") or {}
+            app_metadata = item.get("app_metadata") or {}
+            result.append({
+                "id": item.get("id"),
+                "username": metadata.get("username") or str(item.get("email", "")).split("@")[0],
+                "role": app_metadata.get("transportie_role", "user"),
+                "created_at": item.get("created_at", ""),
+            })
+        result.sort(key=lambda item: item["username"].lower())
+        return {"users": result}
+    except Exception:
+        return JSONResponse(status_code=502, content={"message": "Nie udało się pobrać listy kont z Supabase."})
+
+
+@app.post("/api/admin/users/{user_id}/role")
+async def admin_set_role(user_id: str, payload: dict, authorization: str = Header(default="")):
+    try:
+        await require_owner(authorization)
+    except PermissionError as error:
+        return JSONResponse(status_code=403, content={"message": str(error)})
+    except Exception as error:
+        return JSONResponse(status_code=503, content={"message": str(error)})
+    role = str(payload.get("role", ""))
+    if role not in ("user", "moderator", "admin"):
+        return JSONResponse(status_code=400, content={"message": "Nieprawidłowa ranga."})
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.put(
+                SUPABASE_URL + "/auth/v1/admin/users/" + user_id,
+                headers=headers,
+                json={"app_metadata": {"transportie_role": role}},
+            )
+            response.raise_for_status()
+        return {"ok": True, "role": role}
+    except Exception:
+        return JSONResponse(status_code=502, content={"message": "Nie udało się zmienić rangi. Sprawdź identyfikator konta i konfigurację Supabase."})
 
 
 @app.get("/api/stops")
