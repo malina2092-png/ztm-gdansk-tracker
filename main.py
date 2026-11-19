@@ -299,7 +299,13 @@ async def live():
 
 @app.get("/api/auth/config")
 def auth_config():
-    return {"enabled": bool(SUPABASE_URL and SUPABASE_KEY)}
+    # Safe diagnostics only: never return secret values.
+    return {
+        "enabled": bool(SUPABASE_URL and SUPABASE_KEY),
+        "has_service_role": bool(SUPABASE_SERVICE_ROLE_KEY),
+        "owner_configured": bool(OWNER_USERNAME),
+        "supabase_key_parts": len(_supabase_parts),
+    }
 
 
 @app.post("/api/auth/signup")
