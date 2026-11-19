@@ -11,9 +11,20 @@ VEHICLE_DB_URL = "https://files.cloudgdansk.pl/d/otwarte-dane/ztm/baza-pojazdow.
 STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/d3e96eb6-25ad-4d6c-8651-b1eb39155945/download/stopsingdansk.json"
 DEPARTURES_URL = "https://ckan2.multimediagdansk.pl/departures"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-OWNER_USERNAME = os.getenv("OWNER_USERNAME", "")
+# On Render plans with a low environment-variable limit, the existing
+# SUPABASE_KEY may contain: publishable_key|service_role_key|owner_username
+_supabase_parts = os.getenv("SUPABASE_KEY", "").split("|")
+SUPABASE_KEY = _supabase_parts[0].strip() if _supabase_parts else ""
+SUPABASE_SERVICE_ROLE_KEY = (
+    _supabase_parts[1].strip()
+    if len(_supabase_parts) > 1
+    else os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+)
+OWNER_USERNAME = (
+    _supabase_parts[2].strip().lower()
+    if len(_supabase_parts) > 2
+    else os.getenv("OWNER_USERNAME", "").strip().lower()
+)
 _stops_cache = []
 _stops_loaded_at = 0
 _vehicle_db = {}
