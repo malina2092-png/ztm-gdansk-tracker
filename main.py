@@ -252,3 +252,115 @@ async def live():
             "vehicles": [],
             "error": str(error)
         }
+
+@app.get("/api/auth/config")
+def auth_config():
+    return {"enabled": bool(SUPABASE_URL and SUPABASE_KEY)}
+
+
+@app.post("/api/auth/signup")
+async def auth_signup(payload: dict):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return JSONResponse(status_code=503, content={"message": "Logowanie nie jest skonfigurowane w Render."})
+    email = str(payload.get("email", "")).strip()
+    password = str(payload.get("password", ""))
+    if not email or len(password) < 8:
+        return JSONResponse(status_code=400, content={"message": "Podaj e-mail i hasło o długości co najmniej 8 znaków."})
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.post(
+            SUPABASE_URL + "/auth/v1/signup",
+            headers={"apikey": SUPABASE_KEY, "Content-Type": "application/json"},
+            json={"email": email, "password": password},
+        )
+    try:
+        data = response.json()
+    except Exception:
+        data = {"message": "Nie udało się odczytać odpowiedzi usługi kont."}
+    return JSONResponse(status_code=response.status_code, content=data)
+
+
+@app.post("/api/auth/login")
+async def auth_login(payload: dict):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return JSONResponse(status_code=503, content={"message": "Logowanie nie jest skonfigurowane w Render."})
+    email = str(payload.get("email", "")).strip()
+    password = str(payload.get("password", ""))
+    if not email or not password:
+        return JSONResponse(status_code=400, content={"message": "Podaj e-mail i hasło."})
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.post(
+            SUPABASE_URL + "/auth/v1/token?grant_type=password",
+            headers={"apikey": SUPABASE_KEY, "Content-Type": "application/json"},
+            json={"email": email, "password": password},
+        )
+    try:
+        data = response.json()
+    except Exception:
+        data = {"message": "Nie udało się odczytać odpowiedzi usługi kont."}
+    return JSONResponse(status_code=response.status_code, content=data)
+
+
+@app.post("/api/auth/logout")
+async def auth_logout(payload: dict = None):
+    token = ""
+    if payload:
+        token = str(payload.get("token", ""))
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return {"ok": True}
+    if token:
+        async with httpx.AsyncClient(timeout=15) as client:
+            await client.post(
+                SUPABASE_URL + "/auth/v1/logout",
+                headers={"apikey": SUPABASE_KEY, "Authorization": "Bearer " + token},
+            )
+    return {"ok": True}
+
+
+@app.get("/api/stops")
+async def get_stops():
+    global _stops_cache, _stops_loaded_at
+    if _stops_cache and time.time() - _stops_loaded_at < 86400:
+        return {"stops": _stops_cache}
+    try:
+        async with httpx.AsyncClient(timeout=40) as client:
+            response = await client.get(STOPS_URL)
+            response.raise_for_status()
+            raw = response.json()
+        records = raw if isinstance(raw, list) else (
+            raw.get("stops") or raw.get("results") or raw.get("data") or []
+        )
+        stops = []
+        for item in records:
+            if not isinstance(item, dict):
+                continue
+            stop_id = item.get("stopId", item.get("stop_id", item.get("id")))
+            name = item.get("stopName", item.get("stop_name", item.get("name", "Przystanek")))
+            lat = item.get("stopLat", item.get("stop_lat", item.get("lat", item.get("latitude"))))
+            lon = item.get("stopLon", item.get("stop_lon", item.get("lon", item.get("longitude"))))
+            try:
+                lat, lon = float(lat), float(lon)
+            except (TypeError, ValueError):
+                continue
+            if stop_id is not None and 53.8 <= lat <= 54.8 and 18.0 <= lon <= 19.2:
+                stops.append({"stopId": str(stop_id), "stopName": str(name), "lat": lat, "lon": lon})
+        _stops_cache = stops
+        _stops_loaded_at = time.time()
+        return {"stops": stops}
+    except Exception as error:
+        return JSONResponse(status_code=502, content={"stops": [], "error": str(error)})
+
+
+@app.get("/api/departures/{stop_id}")
+async def get_departures(stop_id: str):
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(DEPARTURES_URL, params={"stopId": stop_id})
+            response.raise_for_status()
+            data = response.json()
+        item = data.get(str(stop_id), {}) if isinstance(data, dict) else {}
+        return {
+            "lastUpdate": item.get("lastUpdate"),
+            "departures": item.get("departures", [])[:20],
+        }
+    except Exception as error:
+        return JSONResponse(status_code=502, content={"departures": [], "error": str(error)})
