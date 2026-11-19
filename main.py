@@ -373,8 +373,21 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   if(String(selectedVehicleCode)!==String(vehicleCode))return;
   if(!response.ok)throw new Error(data.error||'Błąd pobierania rozkładu');
   const stops=Array.isArray(data.stops)?data.stops:[];
+  const diag=data.diagnostics||{};
+  const diagnostic='<details class="course-diagnostics"'+(Number(data.timesFound||0)===0?' open':'')+'><summary>Diagnostyka godzin</summary><div class="course-diagnostics-body">'+
+   '<div>Data rozkładu: <b>'+safe(diag.date||'—')+'</b></div>'+
+   '<div>Przystanki wariantu GPS: <b>'+safe(diag.tripStops??'—')+'</b></div>'+
+   '<div>Wiersze pobrane z rozkładu: <b>'+safe(data.scheduleRows??'—')+'</b></div>'+
+   '<div>Wiersze dla routeId: <b>'+safe(diag.routeRows??'—')+'</b></div>'+
+   '<div>Wiersze dla tripId: <b>'+safe(diag.tripRows??'—')+'</b></div>'+
+   '<div>Wiersze dla vehicleService: <b>'+safe(diag.serviceRows??'—')+'</b></div>'+
+   '<div>Metoda dopasowania: <b>'+safe(data.scheduleMatch||'brak')+'</b></div>'+
+   '<div>Godziny dopasowane do przystanków: <b>'+safe(data.timesFound??0)+'</b></div>'+
+   '<div>Identyfikatory kursów: <b>'+safe((diag.tripIds||[]).join(', ')||'brak')+'</b></div>'+
+   (diag.error?'<div class="course-diagnostics-error">Błąd rozkładu: '+safe(diag.error)+'</div>':'')+
+   '</div></details>';
   if(!stops.length){
-   box.innerHTML='<div class="vehicle-detail-empty">ZTM nie zwrócił przystanków dla tego wariantu kursu.</div>';
+   box.innerHTML='<div class="vehicle-detail-empty">ZTM nie zwrócił przystanków dla tego wariantu kursu.</div>'+diagnostic;
    return;
   }
   const currentIndex=Number(data.currentIndex||0);
@@ -385,7 +398,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
    const passed=index<currentIndex?' passed':'';
    const stopLabel=(stop.name||'Przystanek')+(stop.code&&!String(stop.name||'').endsWith(String(stop.code))?' '+stop.code:'');
    return '<div class="course-stop'+passed+'" data-stop-index="'+index+'"><span class="course-stop-marker" aria-hidden="true"></span><span class="course-stop-name"><b>'+safe(stopLabel)+'</b></span>'+time+'</div>';
-  }).join('');
+  }).join('')+diagnostic;
   if(currentIndex>0){
    window.setTimeout(()=>{
     if(String(selectedVehicleCode)!==String(vehicleCode))return;
@@ -394,7 +407,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   }
  }catch(error){
   if(String(selectedVehicleCode)!==String(vehicleCode))return;
-  box.innerHTML='<div class="vehicle-detail-empty">'+safe(error.message||'Nie udało się pobrać listy przystanków.')+'</div>';
+  box.innerHTML='<div class="vehicle-detail-empty">'+safe(error.message||'Nie udało się pobrać listy przystanków.')+'</div><div class="course-diagnostics-error">Diagnostyka: błąd połączenia z endpointem trasy.</div>';
  }
 }
 let vehicleRouteStopsTimer=null;
@@ -870,6 +883,15 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
         scheduled_by_stop = {}
         schedule_row_count = 0
         schedule_match = "none"
+        schedule_diagnostics = {
+            "date": datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d"),
+            "tripStops": len(matches),
+            "routeRows": 0,
+            "tripRows": 0,
+            "serviceRows": 0,
+            "tripIds": [],
+            "error": None,
+        }
         try:
             today = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
             cache_key = today + ":" + str(route_id)
@@ -911,21 +933,36 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             trip_schedule = [item for item in route_schedule if norm_id(item.get("tripId")) == norm_id(trip_id)]
             if not trip_schedule:
                 trip_schedule = [item for item in schedule_rows if norm_id(item.get("tripId")) == norm_id(trip_id)]
+            route_stop_ids = {norm_id(row.get("stopId")) for row in matches}
+            schedule_diagnostics["routeRows"] = len(route_schedule)
+            schedule_diagnostics["tripRows"] = len(trip_schedule)
             if vehicle_service:
                 service_rows = [
                     item for item in route_schedule
                     if norm_id(item.get("busServiceName") or item.get("vehicleService")) == norm_id(vehicle_service)
                 ]
-                if service_rows:
-                    trip_schedule = service_rows
-                    schedule_match = "vehicleService"
-            if trip_schedule and schedule_match != "vehicleService":
+                schedule_diagnostics["serviceRows"] = len(service_rows)
+                if not trip_schedule and service_rows:
+                    service_groups = {}
+                    for item in service_rows:
+                        service_groups.setdefault(norm_id(item.get("tripId")), []).append(item)
+                    ranked_service = sorted(
+                        service_groups.values(),
+                        key=lambda group: len(route_stop_ids.intersection({norm_id(item.get("stopId")) for item in group})),
+                        reverse=True,
+                    )
+                    if ranked_service:
+                        best_service = ranked_service[0]
+                        overlap = route_stop_ids.intersection({norm_id(item.get("stopId")) for item in best_service})
+                        if overlap or len(service_groups) == 1:
+                            trip_schedule = best_service
+                            schedule_match = "vehicleService+stopOverlap" if overlap else "vehicleService(uniqueTrip)"
+            if trip_schedule and schedule_match == "none":
                 schedule_match = "tripId"
             if not trip_schedule and route_schedule:
-                route_stop_ids = {norm_id(row.get("stopId")) for row in matches}
                 grouped = {}
                 for item in route_schedule:
-                    key = (norm_id(item.get("tripId")), norm_id(item.get("busServiceName") or item.get("vehicleService")))
+                    key = norm_id(item.get("tripId"))
                     grouped.setdefault(key, []).append(item)
                 ranked = sorted(
                     grouped.values(),
@@ -938,6 +975,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                     if overlap:
                         trip_schedule = best
                         schedule_match = "bestStopSequence"
+            schedule_diagnostics["tripIds"] = sorted({norm_id(item.get("tripId")) for item in route_schedule if norm_id(item.get("tripId"))})[:8]
             for item in trip_schedule:
                 sid = norm_id(item.get("stopId"))
                 value = item.get("departureTime") or item.get("arrivalTime")
@@ -946,6 +984,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
         except Exception as schedule_error:
             scheduled_by_stop = {}
             schedule_match = "error: " + str(schedule_error)[:120]
+            schedule_diagnostics["error"] = str(schedule_error)[:220]
 
         result = []
         for row in matches:
@@ -953,7 +992,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 continue
             sid = str(row.get("stopId", ""))
             stop = stop_lookup.get(sid, {"stopId": sid, "name": "Przystanek", "code": "", "lat": None, "lon": None})
-            time_value = scheduled_by_stop.get(sid)
+            time_value = scheduled_by_stop.get(str(sid).strip().replace(".0", ""))
             scheduled_time = None
             estimated_time = None
             if time_value:
@@ -1006,6 +1045,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             "scheduleRows": schedule_row_count,
             "scheduleMatch": schedule_match,
             "timesFound": len(scheduled_by_stop),
+            "diagnostics": schedule_diagnostics,
             "source": "ZTM stopsInTrip + stops + stopTimes",
         }
     except Exception as error:
