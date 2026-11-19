@@ -1,10 +1,14 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import httpx
+import time
 
 app = FastAPI(title="Transportie")
 
 GPS_URL = "https://ckan2.multimediagdansk.pl/gpsPositions?v=2"
+VEHICLE_DB_URL = "https://files.cloudgdansk.pl/d/otwarte-dane/ztm/baza-pojazdow.json?v=2"
+_vehicle_db = {}
+_vehicle_db_loaded_at = 0
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -165,14 +169,40 @@ updateVehicles();setInterval(updateVehicles,20000);
 
 @app.get("/api/live")
 async def live():
+    global _vehicle_db, _vehicle_db_loaded_at
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             response = await client.get(GPS_URL)
             response.raise_for_status()
             data = response.json()
+
+            # Static fleet data is refreshed at most once per hour.
+            if time.time() - _vehicle_db_loaded_at > 3600:
+                try:
+                    fleet_response = await client.get(VEHICLE_DB_URL)
+                    fleet_response.raise_for_status()
+                    fleet_data = fleet_response.json()
+                    _vehicle_db = {
+                        str(item.get("vehicleCode")): item
+                        for item in fleet_data.get("results", [])
+                        if item.get("vehicleCode") is not None
+                    }
+                    _vehicle_db_loaded_at = time.time()
+                except Exception:
+                    pass
+
+        vehicles = data.get("vehicles", [])
+        for vehicle in vehicles:
+            fleet = _vehicle_db.get(str(vehicle.get("vehicleCode")), {})
+            vehicle["carrier"] = (
+                fleet.get("carrirer")
+                or fleet.get("carrier")
+                or fleet.get("operator")
+                or "—"
+            )
         return {
             "lastUpdate": data.get("lastUpdate"),
-            "vehicles": data.get("vehicles", [])
+            "vehicles": vehicles
         }
     except Exception as error:
         return {
