@@ -946,6 +946,11 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 trip_schedule = [item for item in schedule_rows if norm_id(item.get("tripId")) == norm_id(trip_id)]
             route_stop_ids = {norm_id(row.get("stopId")) for row in matches}
             schedule_diagnostics["routeRows"] = len(route_schedule)
+            if route_schedule:
+                schedule_diagnostics["sampleRows"] = [
+                    {key: item.get(key) for key in ("routeId", "tripId", "stopId", "stopSequence", "departureTime", "arrivalTime", "busServiceName", "vehicleService")}
+                    for item in route_schedule[:5]
+                ]
             schedule_diagnostics["tripRows"] = len(trip_schedule)
             if vehicle_service:
                 service_rows = [
