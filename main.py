@@ -3,6 +3,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 import httpx
 import time
 import os
+import math
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 app = FastAPI(title="Transportie")
 
@@ -30,6 +33,7 @@ _stops_cache = []
 _stops_loaded_at = 0
 _stops_in_trips_cache = []
 _stops_in_trips_loaded_at = 0
+_stop_times_cache = {}
 _vehicle_db = {}
 _vehicle_db_loaded_at = 0
 
@@ -76,7 +80,7 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 .vehicle-label{background:#fff;color:#1d3151;border:1px solid #dce7f8;border-radius:9px;padding:5px 8px;font-weight:700;box-shadow:0 4px 12px #23395b20}
 .vehicle-marker{background:transparent!important;border:0!important;width:auto!important;height:auto!important}.vehicle-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 5px #17243a88}.stop-icon{width:17px;height:17px;border-radius:50%;font-size:0;border:2px solid #fff;background:#1765a8;box-shadow:0 1px 5px #142b4570}.stop-marker{background:transparent!important;border:0!important}.vehicle-marker:before,.vehicle-marker:after{display:none!important}.vehicle-chip{font-size:10px!important;padding:3px 5px!important;border-radius:5px!important;box-shadow:0 1px 4px #17243a33!important}.stop-marker{stroke:#fff;stroke-width:2;fill:#64748b;fill-opacity:.95}.stop-icon{display:block;width:10px;height:10px;border-radius:50%;background:#1765a8;border:2px solid #fff;box-shadow:0 1px 4px #142b4560;font-size:0}.leaflet-tooltip.stop-label{background:#fff;border:1px solid #b9cce0;border-radius:6px;color:#203b5c;padding:3px 6px;font-size:10px;font-weight:700;box-shadow:0 2px 6px #142b4525}.leaflet-tooltip.stop-label:before{display:none}.stop-popup{min-width:220px;font:13px/1.45 Inter,Arial,sans-serif}.stop-action{display:block;width:100%;margin-top:9px;padding:10px 12px;border:0;border-radius:9px;background:#1765d1;color:#fff;font-weight:800;font-size:13px;cursor:pointer}.departures-card{max-width:850px}.stop-search-results{display:grid;gap:7px;margin-top:12px}.stop-search-results button{padding:10px 12px;text-align:left;border:1px solid #e0e8f3;background:#fff;border-radius:10px;color:#243c5c;cursor:pointer}.departures-list{margin-top:12px}.departure-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #edf1f6}.departure-fleet{display:inline-block;margin-left:7px;padding:2px 6px;border:0;border-radius:0;background:#eaf1ff;color:#245db3;font:inherit;font-size:10px;font-weight:800;white-space:nowrap;cursor:pointer}.departure-fleet:hover{background:#d9e8ff}.vehicle-popup{min-width:190px;font:13px/1.5 Inter,Arial,sans-serif;color:#17243a}.vehicle-popup hr{border:0;border-top:1px solid #e6ebf2;margin:7px 0}.course-stops{max-height:220px;overflow-y:auto;overscroll-behavior:contain;padding:3px 5px 3px 0;margin-top:7px}.course-stop{display:flex;align-items:flex-start;gap:8px;padding:7px 2px;border-bottom:1px solid #edf1f6}.course-stop-index{display:grid;place-items:center;flex:none;width:21px;height:21px;border-radius:50%;background:#eaf1ff;color:#245db3;font-size:10px;font-weight:800}.course-stop small{display:block;color:#718096;margin-top:2px;font-size:10px}
 .leaflet-tooltip.vehicle-label:before{display:none}
-.vehicle-detail-overlay{position:fixed;inset:0;z-index:5000;display:none;align-items:flex-end;justify-content:center;padding:18px;pointer-events:none}.vehicle-detail-overlay.open{display:flex;pointer-events:auto}.vehicle-detail-backdrop{position:absolute;inset:0;background:rgba(12,24,42,.35);backdrop-filter:blur(2px)}.vehicle-detail-card{position:relative;width:min(620px,100%);max-height:min(82vh,850px);overflow:auto;background:#fff;border:1px solid rgba(255,255,255,.9);border-radius:24px;box-shadow:0 24px 80px rgba(12,24,42,.28);padding:20px;color:#17243a;animation:vehicleCardIn .2s ease-out}.vehicle-detail-grabber{display:none}.vehicle-detail-close{position:absolute;right:15px;top:14px;width:36px;height:36px;border:0;border-radius:50%;background:#f0f3f8;color:#34445d;font-size:25px;line-height:1;cursor:pointer}.vehicle-detail-head{display:flex;align-items:center;gap:14px;padding:5px 46px 17px 0;border-bottom:1px solid #e9eef5}.vehicle-detail-line{display:grid;place-items:center;flex:none;min-width:66px;height:66px;padding:0 8px;border-radius:18px;background:#eaf1ff;color:#1c61c7;font-size:25px;font-weight:900}.vehicle-detail-type{font-size:11px;color:#718096;font-weight:750;text-transform:uppercase;letter-spacing:.7px}.vehicle-detail-title{font-size:22px;font-weight:850;letter-spacing:-.6px;margin-top:3px}.vehicle-detail-subtitle{font-size:12px;color:#718096;margin-top:4px}.vehicle-live-status{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:5px 9px;border-radius:20px;background:#e9f8ef;color:#16834b;font-size:11px;font-weight:800}.vehicle-live-status:before{content:"";width:6px;height:6px;border-radius:50%;background:#20b56a}.vehicle-detail-section{padding:16px 0 2px}.vehicle-detail-section h3{margin:0 0 10px;font-size:13px;color:#66758d;text-transform:uppercase;letter-spacing:.65px}.vehicle-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.vehicle-detail-field{min-width:0;padding:11px 12px;border:1px solid #edf1f6;border-radius:13px;background:#f9fbfe}.vehicle-detail-field span{display:block;color:#78869b;font-size:10px;font-weight:700;margin-bottom:5px}.vehicle-detail-field b{display:block;font-size:13px;overflow-wrap:anywhere}.vehicle-delay{color:#1765d1}.vehicle-detail-stops{position:relative;padding-left:10px}.vehicle-detail-stops .course-stop{padding:9px 0}.vehicle-detail-empty{padding:12px;border-radius:12px;background:#f7f9fc;color:#718096;font-size:12px;line-height:1.5}.vehicle-technical-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}.vehicle-technical-list div{padding:8px 10px;background:#f8fafc;border-radius:9px;min-width:0}.vehicle-technical-list small{display:block;color:#7b8798;font-size:10px}.vehicle-technical-list b{display:block;margin-top:3px;font-size:11px;overflow-wrap:anywhere}@keyframes vehicleCardIn{from{transform:translateY(18px);opacity:.7}to{transform:translateY(0);opacity:1}}
+.vehicle-detail-overlay{position:fixed;inset:0;z-index:5000;display:none;align-items:flex-end;justify-content:center;padding:18px;pointer-events:none}.vehicle-detail-overlay.open{display:flex;pointer-events:auto}.vehicle-detail-backdrop{position:absolute;inset:0;background:rgba(12,24,42,.35);backdrop-filter:blur(2px)}.vehicle-detail-card{position:relative;width:min(620px,100%);max-height:min(82vh,850px);overflow:auto;background:#fff;border:1px solid rgba(255,255,255,.9);border-radius:24px;box-shadow:0 24px 80px rgba(12,24,42,.28);padding:20px;color:#17243a;animation:vehicleCardIn .2s ease-out}.vehicle-detail-grabber{display:none}.vehicle-detail-close{position:absolute;right:15px;top:14px;width:36px;height:36px;border:0;border-radius:50%;background:#f0f3f8;color:#34445d;font-size:25px;line-height:1;cursor:pointer}.vehicle-detail-head{display:flex;align-items:center;gap:14px;padding:5px 46px 17px 0;border-bottom:1px solid #e9eef5}.vehicle-detail-line{display:grid;place-items:center;flex:none;min-width:66px;height:66px;padding:0 8px;border-radius:18px;background:#eaf1ff;color:#1c61c7;font-size:25px;font-weight:900}.vehicle-detail-type{font-size:11px;color:#718096;font-weight:750;text-transform:uppercase;letter-spacing:.7px}.vehicle-detail-title{font-size:22px;font-weight:850;letter-spacing:-.6px;margin-top:3px}.vehicle-detail-subtitle{font-size:12px;color:#718096;margin-top:4px}.vehicle-live-status{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:5px 9px;border-radius:20px;background:#e9f8ef;color:#16834b;font-size:11px;font-weight:800}.vehicle-live-status:before{content:"";width:6px;height:6px;border-radius:50%;background:#20b56a}.vehicle-detail-section{padding:16px 0 2px}.vehicle-detail-section h3{margin:0 0 10px;font-size:13px;color:#66758d;text-transform:uppercase;letter-spacing:.65px}.vehicle-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.vehicle-detail-field{min-width:0;padding:11px 12px;border:1px solid #edf1f6;border-radius:13px;background:#f9fbfe}.vehicle-detail-field span{display:block;color:#78869b;font-size:10px;font-weight:700;margin-bottom:5px}.vehicle-detail-field b{display:block;font-size:13px;overflow-wrap:anywhere}.vehicle-delay{color:#1765d1}.vehicle-detail-stops{position:relative;padding:3px 5px 3px 0;margin-top:7px;max-height:260px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c7d5e8 transparent}.vehicle-detail-stops .course-stop{display:flex;align-items:center;gap:9px;padding:9px 3px;border-bottom:1px solid #edf1f6}.course-stop-dash{flex:none;width:13px;color:#8b9bb1;font-weight:900}.course-stop-name{min-width:0;flex:1}.course-stop-name b{display:block;font-size:12px}.course-stop-name small{display:block;color:#718096;margin-top:3px;font-size:10px}.course-stop-time{flex:none;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:#344a68;white-space:nowrap}.course-stop-time s{color:#98a3b3;font-weight:600}.course-stop-time strong{color:#1765d1}.vehicle-detail-empty{padding:12px;border-radius:12px;background:#f7f9fc;color:#718096;font-size:12px;line-height:1.5}.vehicle-technical-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}.vehicle-technical-list div{padding:8px 10px;background:#f8fafc;border-radius:9px;min-width:0}.vehicle-technical-list small{display:block;color:#7b8798;font-size:10px}.vehicle-technical-list b{display:block;margin-top:3px;font-size:11px;overflow-wrap:anywhere}@keyframes vehicleCardIn{from{transform:translateY(18px);opacity:.7}to{transform:translateY(0);opacity:1}}
 @media(min-width:850px){.vehicle-detail-overlay{align-items:center;justify-content:flex-end;padding:18px 22px}.vehicle-detail-card{width:min(510px,calc(100vw - 340px));max-height:calc(100vh - 36px);border-radius:22px}}
 @media(max-width:520px){.vehicle-detail-overlay{padding:0;align-items:flex-end}.vehicle-detail-backdrop{background:rgba(12,24,42,.32)}.vehicle-detail-card{width:100%;max-height:80dvh;border-radius:22px 22px 0 0;padding:12px 16px calc(20px + env(safe-area-inset-bottom));animation:vehicleCardIn .2s ease-out}.vehicle-detail-grabber{display:block;width:38px;height:4px;border-radius:8px;background:#d8dee8;margin:0 auto 12px}.vehicle-detail-close{top:12px;right:15px}.vehicle-detail-head{gap:11px;padding-top:3px}.vehicle-detail-line{min-width:58px;height:58px;border-radius:15px;font-size:22px}.vehicle-detail-title{font-size:19px}.vehicle-detail-grid{gap:7px}.vehicle-detail-field{padding:9px}.vehicle-detail-field b{font-size:12px}.vehicle-technical-list{grid-template-columns:1fr 1fr}}
 
@@ -343,9 +347,15 @@ function openVehicleDetails(v){
  overlay.setAttribute('aria-hidden','false');
  document.body.classList.add('vehicle-detail-open');
  selectedVehicleCode=String(v.vehicleCode||'');
- loadVehicleRouteStops(routeId,tripId,selectedVehicleCode);
+ if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}
+ loadVehicleRouteStops(routeId,tripId,selectedVehicleCode,v);
+ vehicleRouteStopsTimer=setInterval(()=>{
+  if(String(selectedVehicleCode)!==String(v.vehicleCode||''))return;
+  const latest=Array.isArray(vehicles)?vehicles.find(item=>String(item.vehicleCode||'')===String(v.vehicleCode||'')):null;
+  if(latest)loadVehicleRouteStops(routeId,tripId,selectedVehicleCode,latest);
+ },15000);
 }
-async function loadVehicleRouteStops(routeId,tripId,vehicleCode){
+async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
  const box=document.getElementById('vehicleRouteStops');
  if(!box)return;
  if(routeId==null||tripId==null){
@@ -353,7 +363,11 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode){
   return;
  }
  try{
-  const response=await fetch('/api/vehicle-route/'+encodeURIComponent(routeId)+'/'+encodeURIComponent(tripId));
+  const lat=vehicle&&vehicle.lat!=null?vehicle.lat:'';
+  const lon=vehicle&&vehicle.lon!=null?vehicle.lon:'';
+  const delay=vehicle&&vehicle.delay!=null?vehicle.delay:'';
+  const query='?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&delay='+encodeURIComponent(delay);
+  const response=await fetch('/api/vehicle-route/'+encodeURIComponent(routeId)+'/'+encodeURIComponent(tripId)+query);
   const data=await response.json();
   if(String(selectedVehicleCode)!==String(vehicleCode))return;
   if(!response.ok)throw new Error(data.error||'Błąd pobierania rozkładu');
@@ -362,13 +376,19 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode){
    box.innerHTML='<div class="vehicle-detail-empty">ZTM nie zwrócił przystanków dla tego wariantu kursu.</div>';
    return;
   }
-  box.innerHTML=stops.map((stop,index)=>'<div class="course-stop"><span class="course-stop-index">'+(index+1)+'</span><span><b>'+safe(stop.name||'Przystanek')+'</b>'+(stop.code?'<small>Słupek '+safe(stop.code)+'</small>':'')+'</span></div>').join('');
+  box.innerHTML=stops.map(stop=>{
+   const time=stop.estimatedTime&&stop.scheduledTime
+    ?'<span class="course-stop-time"><s>'+safe(stop.scheduledTime)+'</s><strong>'+safe(stop.estimatedTime)+'</strong></span>'
+    :'<span class="course-stop-time">'+safe(stop.estimatedTime||stop.scheduledTime||'')+'</span>';
+   return '<div class="course-stop"><span class="course-stop-dash">—</span><span class="course-stop-name"><b>'+safe(stop.name||'Przystanek')+'</b>'+(stop.code?'<small>Słupek '+safe(stop.code)+'</small>':'')+'</span>'+time+'</div>';
+  }).join('');
  }catch(error){
   if(String(selectedVehicleCode)!==String(vehicleCode))return;
   box.innerHTML='<div class="vehicle-detail-empty">'+safe(error.message||'Nie udało się pobrać listy przystanków.')+'</div>';
  }
 }
-function closeVehicleDetails(){const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open');selectedVehicleCode=null;}
+let vehicleRouteStopsTimer=null;
+function closeVehicleDetails(){const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open');selectedVehicleCode=null;if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}}
 window.openVehicleDetails=openVehicleDetails;window.closeVehicleDetails=closeVehicleDetails;
 let selectedVehicleCode=null;
 function refreshTooltips(){vehicles.forEach(v=>{const id=String(v.vehicleCode||'');if(markers[id]){const icon=vehicleIcon(v),html=icon.options&&icon.options.html||'';if(markers[id]._transportieIconHtml!==html){markers[id].setIcon(icon);markers[id]._transportieIconHtml=html;}}});const zoom=map?map.getZoom():12,bounds=map?map.getBounds():null;Object.values(stopMarkers).forEach(marker=>{if(zoom>=15&&bounds&&bounds.contains(marker.getLatLng())){marker.openTooltip&&marker.openTooltip();}else{marker.closeTooltip&&marker.closeTooltip();}});}
@@ -767,8 +787,8 @@ async def get_stops():
 
 
 @app.get("/api/vehicle-route/{route_id}/{trip_id}")
-async def get_vehicle_route(route_id: str, trip_id: str):
-    """Return the ordered passenger stops for the exact live TRISTAR route variant."""
+async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon: float = None, delay: float = None):
+    """Return the ordered passenger stops and timetable times for the exact live trip."""
     global _stops_in_trips_cache, _stops_in_trips_loaded_at, _stops_cache, _stops_loaded_at
     try:
         async with httpx.AsyncClient(timeout=35, follow_redirects=True) as client:
@@ -787,9 +807,7 @@ async def get_vehicle_route(route_id: str, trip_id: str):
                         ]
                         if dated:
                             records = sorted(dated, key=lambda entry: entry[0])[-1][1]
-                if not isinstance(records, list):
-                    records = []
-                _stops_in_trips_cache = records
+                _stops_in_trips_cache = records if isinstance(records, list) else []
                 _stops_in_trips_loaded_at = time.time()
 
             if not _stops_cache or time.time() - _stops_loaded_at > 86400:
@@ -817,10 +835,17 @@ async def get_vehicle_route(route_id: str, trip_id: str):
             sid = stop.get("stopId", stop.get("stop_id", stop.get("id")))
             if sid is None:
                 continue
+            try:
+                stop_lat = float(stop.get("stopLat", stop.get("stop_lat", stop.get("lat", stop.get("latitude")))))
+                stop_lon = float(stop.get("stopLon", stop.get("stop_lon", stop.get("lon", stop.get("longitude")))))
+            except (TypeError, ValueError):
+                stop_lat, stop_lon = None, None
             stop_lookup[str(sid)] = {
                 "stopId": str(sid),
                 "name": stop.get("stopName") or stop.get("stopDesc") or stop.get("stop_name") or stop.get("name") or "Przystanek",
                 "code": stop.get("subName") or stop.get("stopCode") or "",
+                "lat": stop_lat,
+                "lon": stop_lon,
             }
 
         matches = [
@@ -830,31 +855,99 @@ async def get_vehicle_route(route_id: str, trip_id: str):
             and str(row.get("tripId")) == str(trip_id)
         ]
         matches.sort(key=lambda row: int(row.get("stopSequence") or 0))
+
+        # Fetch the official stop-time table for today's local date and this route.
+        scheduled_by_stop = {}
+        try:
+            today = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
+            cache_key = today + ":" + str(route_id)
+            cached = _stop_times_cache.get(cache_key)
+            if not cached or time.time() - cached.get("loaded_at", 0) > 3600:
+                schedule_response = await client.get(
+                    "https://ckan2.multimediagdansk.pl/stopTimes",
+                    params={"date": today, "routeId": route_id},
+                )
+                schedule_response.raise_for_status()
+                schedule_raw = schedule_response.json()
+                schedule_records = schedule_raw.get("stopTimes", []) if isinstance(schedule_raw, dict) else []
+                if not schedule_records and isinstance(schedule_raw, dict):
+                    dated = [
+                        value.get("stopTimes")
+                        for key, value in schedule_raw.items()
+                        if isinstance(value, dict) and isinstance(value.get("stopTimes"), list)
+                    ]
+                    if dated:
+                        schedule_records = dated[-1]
+                cached = {"loaded_at": time.time(), "records": schedule_records if isinstance(schedule_records, list) else []}
+                _stop_times_cache[cache_key] = cached
+            for item in cached.get("records", []):
+                if isinstance(item, dict) and str(item.get("tripId")) == str(trip_id):
+                    sid = item.get("stopId")
+                    if sid is not None:
+                        scheduled_by_stop[str(sid)] = item.get("arrivalTime") or item.get("departureTime")
+        except Exception:
+            scheduled_by_stop = {}
+
         result = []
         for row in matches:
             if row.get("passenger") is False:
                 continue
             sid = str(row.get("stopId", ""))
-            stop = stop_lookup.get(sid, {"stopId": sid, "name": "Przystanek", "code": ""})
+            stop = stop_lookup.get(sid, {"stopId": sid, "name": "Przystanek", "code": "", "lat": None, "lon": None})
+            time_value = scheduled_by_stop.get(sid)
+            scheduled_time = None
+            estimated_time = None
+            if time_value:
+                try:
+                    parsed = datetime.fromisoformat(str(time_value).replace("Z", "+00:00"))
+                    scheduled_time = parsed.strftime("%H:%M")
+                    if delay is not None and delay > 0:
+                        adjusted = datetime(2000, 1, 1, parsed.hour, parsed.minute, parsed.second) + timedelta(seconds=delay)
+                        estimated_time = adjusted.strftime("%H:%M")
+                except (TypeError, ValueError):
+                    pass
             result.append({
                 "stopId": sid,
                 "name": stop["name"],
                 "code": stop["code"],
                 "sequence": row.get("stopSequence"),
+                "lat": stop["lat"],
+                "lon": stop["lon"],
+                "scheduledTime": scheduled_time,
+                "estimatedTime": estimated_time,
             })
+
+        # Approximate the vehicle's progress using the closest stop on this trip.
+        # If the GPS position is far from the route, keep the complete list.
+        current_index = 0
+        if lat is not None and lon is not None and result:
+            distances = []
+            for index, stop in enumerate(result):
+                if stop["lat"] is None or stop["lon"] is None:
+                    continue
+                p1, p2 = math.radians(lat), math.radians(stop["lat"])
+                dp = math.radians(stop["lat"] - lat)
+                dl = math.radians(stop["lon"] - lon)
+                a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+                distances.append((2 * 6371000 * math.asin(min(1, math.sqrt(a))), index))
+            if distances:
+                nearest_distance, nearest_index = min(distances)
+                if nearest_distance <= 1500:
+                    current_index = nearest_index
+        result = result[current_index:]
         return {
             "routeId": route_id,
             "tripId": trip_id,
             "stops": result,
             "count": len(result),
-            "source": "ZTM stopsInTrip + stops",
+            "currentIndex": current_index,
+            "source": "ZTM stopsInTrip + stops + stopTimes",
         }
     except Exception as error:
         return JSONResponse(
             status_code=502,
             content={"stops": [], "count": 0, "error": "Nie udało się pobrać przystanków kursu: " + str(error)[:220]},
         )
-
 
 @app.get("/api/departures/{stop_id}")
 async def get_departures(stop_id: str):
