@@ -1,12 +1,19 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 import httpx
 import time
+import os
 
 app = FastAPI(title="Transportie")
 
 GPS_URL = "https://ckan2.multimediagdansk.pl/gpsPositions?v=2"
 VEHICLE_DB_URL = "https://files.cloudgdansk.pl/d/otwarte-dane/ztm/baza-pojazdow.json?v=2"
+STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json"
+DEPARTURES_URL = "https://ckan2.multimediagdansk.pl/departures"
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+_stops_cache = []
+_stops_loaded_at = 0
 _vehicle_db = {}
 _vehicle_db_loaded_at = 0
 
@@ -29,10 +36,10 @@ header{position:fixed;z-index:1100;top:14px;right:16px;padding:0;display:flex;al
 .brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,#5d94f3,#3267d6);display:grid;place-items:center;color:white;font-size:24px;box-shadow:0 8px 18px #3978e833}
 h1{font-size:25px;margin:0;letter-spacing:-.7px}.subtitle{color:var(--muted);font-size:13px;margin-top:4px}
 .live-pill{background:#e8f8ef;color:#16834b;padding:9px 13px;border-radius:30px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}.dot{width:7px;height:7px;background:#20b56a;border-radius:50%}
-nav{position:fixed;z-index:1200;left:16px;top:16px;bottom:16px;width:214px;display:flex;flex-direction:column;gap:7px;padding:16px;background:rgba(255,255,255,.91);border:1px solid #fff;border-radius:22px;box-shadow:var(--shadow);backdrop-filter:blur(18px);overflow:auto}
+nav{position:fixed;z-index:1200;left:16px;top:62px;bottom:16px;width:214px;transition:transform .22s ease;display:flex;flex-direction:column;gap:7px;padding:16px;background:rgba(255,255,255,.91);border:1px solid #fff;border-radius:22px;box-shadow:var(--shadow);backdrop-filter:blur(18px);overflow:auto}
 nav button,nav a,.primary,.secondary,.icon-button{border:0;border-radius:12px;padding:11px 15px;font-weight:650;font-size:13px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block}
 nav button,nav a{background:transparent;color:#66758d;text-align:left;width:100%;padding:13px 14px}nav button.active{background:var(--blue-soft);color:var(--blue);box-shadow:inset 3px 0 var(--blue)}
-main{padding:0;margin:0}
+body.menu-closed nav{transform:translateX(calc(-100% - 24px))}#menuToggle{position:fixed;z-index:1500;left:16px;top:14px;border:0;border-radius:12px;background:#fff;color:#263957;padding:10px 13px;font-size:18px;box-shadow:var(--shadow);cursor:pointer}#myLocation{position:fixed;z-index:1100;right:14px;top:58px;border:0;border-radius:12px;background:#fff;color:#263957;padding:11px 13px;box-shadow:var(--shadow);font-size:18px;cursor:pointer}#locationStatus{position:fixed;z-index:1100;right:14px;top:108px;background:#fff;padding:7px 10px;border-radius:9px;box-shadow:var(--shadow);font-size:11px;display:none;max-width:190px}main{padding:0;margin:0}
 section{display:none}section.active{display:block}#mapa.active{display:block;position:fixed;inset:0;z-index:1}#mapa .section-head{display:none}#mapa .map-layout{position:absolute;inset:0}#mapa .map-layout>.surface{position:absolute;inset:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}#mapa .map-side{position:absolute;z-index:600;right:16px;top:76px;width:230px;display:flex;flex-direction:column;gap:10px}#mapa .map-side .surface{background:rgba(255,255,255,.9);backdrop-filter:blur(14px);padding:13px;border-radius:16px}section:not(#mapa).active{position:relative;margin-left:246px;padding:88px 30px 30px}
 .section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin:8px 0 16px}
 h2{font-size:21px;letter-spacing:-.4px;margin:0 0 5px}.hint{font-size:13px;color:var(--muted)}
@@ -51,7 +58,7 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 .tag{display:inline-flex;padding:5px 9px;background:#edf3ff;color:#326bd2;border-radius:20px;font-weight:700;font-size:12px}
 .empty{padding:28px;text-align:center;color:var(--muted);font-size:13px}
 .vehicle-label{background:#fff;color:#1d3151;border:1px solid #dce7f8;border-radius:9px;padding:5px 8px;font-weight:700;box-shadow:0 4px 12px #23395b20}
-.vehicle-marker{background:transparent!important;border:0!important;width:auto!important;height:auto!important}.vehicle-marker:before,.vehicle-marker:after{display:none!important}.vehicle-popup{min-width:190px;font:13px/1.5 Inter,Arial,sans-serif;color:#17243a}.vehicle-popup hr{border:0;border-top:1px solid #e6ebf2;margin:7px 0}
+.vehicle-marker{background:transparent!important;border:0!important;width:auto!important;height:auto!important}.vehicle-marker:before,.vehicle-marker:after{display:none!important}.vehicle-chip{font-size:10px!important;padding:3px 5px!important;border-radius:5px!important;box-shadow:0 1px 4px #17243a33!important}.stop-marker{stroke:#fff;stroke-width:2;fill:#64748b;fill-opacity:.95}.stop-popup{min-width:220px;font:13px/1.45 Inter,Arial,sans-serif}.departure-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #edf1f6}.vehicle-popup{min-width:190px;font:13px/1.5 Inter,Arial,sans-serif;color:#17243a}.vehicle-popup hr{border:0;border-top:1px solid #e6ebf2;margin:7px 0}
 .leaflet-tooltip.vehicle-label:before{display:none}
 
 .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
@@ -81,6 +88,8 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 </style>
 </head>
 <body>
+<button id="menuToggle" onclick="toggleMenu()" aria-label="Otwórz lub zamknij menu">☰</button>
+<button id="myLocation" onclick="locateUser()" aria-label="Pokaż moją lokalizację">◎</button><div id="locationStatus"></div>
 <header>
  <div class="brand"><div class="logo">🚌</div><div><h1>Transportie</h1><div class="subtitle">Gdańsk · tracker komunikacji miejskiej</div></div></div>
  <div class="live-pill"><span class="dot"></span><span id="connection">Łączenie z GPS</span></div>
@@ -91,6 +100,7 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  <button onclick="showSection('wyjechalo',this)">🚌 Co wyjechało</button>
  <button onclick="showSection('linia',this)">🔎 Pojazdy na linii</button>
  <button onclick="showSection('ustawienia',this)">⚙️ Ustawienia</button>
+ <button onclick="showSection('konto',this)">👤 Konto</button>
 </nav>
 <main>
 <section id="mapa" class="active">
@@ -121,6 +131,14 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
   <label class="check"><input type="checkbox" id="showBrigade" onchange="saveLabelSettings()"> Numer brygady</label>
   <label class="check"><input type="checkbox" id="showFleet" checked onchange="saveLabelSettings()"> Numer taborowy</label>
  </div><p class="small-note">Widoczne będą wyłącznie dane potwierdzone w źródłach ZTM.</p><div class="small-note" id="mapLabelSummary">Etykiety: —</div><div class="small-note" id="dataStatus">Połączenie z danymi: oczekiwanie…</div><div class="small-note" id="lastUpdateSettings">Ostatnia aktualizacja: —</div><div class="small-note" id="vehicleCountSettings">Widoczne pojazdy: —</div></div>
+</section>
+<section id="konto">
+ <div class="section-head"><div><h2>Konto użytkownika</h2><div class="hint">Zaloguj się lub utwórz konto Transportie</div></div></div>
+ <div class="surface" style="max-width:520px">
+  <div id="authStatus" class="small-note">Sprawdzanie konfiguracji konta…</div>
+  <div id="authForms"><label class="small-note" for="authEmail">Adres e-mail</label><input id="authEmail" type="email" autocomplete="email" placeholder="adres@email.com" style="width:100%;margin:6px 0 12px"><label class="small-note" for="authPassword">Hasło</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Hasło" style="width:100%;margin:6px 0 12px"><div class="toolbar"><button class="primary" onclick="loginUser()">Zaloguj się</button><button class="secondary" onclick="registerUser()">Utwórz konto</button></div></div>
+  <div id="accountPanel" style="display:none"><b id="accountEmail"></b><p class="small-note">Jesteś zalogowany/a.</p><button class="secondary" onclick="logoutUser()">Wyloguj</button></div>
+ </div>
 </section>
 </main>
 <div id="appError" style="display:none;position:fixed;z-index:99999;left:10px;right:10px;bottom:10px;background:#fff0f0;color:#8b1e1e;border:1px solid #e6aaaa;border-radius:12px;padding:12px;font:13px/1.4 system-ui;max-height:35vh;overflow:auto"><b>Błąd aplikacji</b><div id="appErrorText"></div></div>
@@ -153,20 +171,22 @@ function loadMapLibrary(){
  script.onerror=()=>console.warn('Mapa niedostępna — pozostałe funkcje działają dalej.');
  document.head.appendChild(script);
 }
-const markers={};let vehicles=[];
+const markers={};let stopMarkers={};let vehicles=[];let userLocationMarker=null;
 loadMapLibrary();
 let labelSettings={line:true,brigade:true,fleet:true};
 try{const saved=JSON.parse(localStorage.getItem('transportie-labels')||'null');if(saved)labelSettings={...labelSettings,...saved};}catch(e){}
 document.getElementById('showLine').checked=labelSettings.line;
 document.getElementById('showBrigade').checked=labelSettings.brigade;
 document.getElementById('showFleet').checked=labelSettings.fleet;
-function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');button.classList.add('active');if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),120);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();}
+function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(button)button.classList.add('active');if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),120);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();if(id==='konto')refreshAccount();}
  window.showSection=showSection;
+function toggleMenu(){document.body.classList.toggle('menu-closed');if(map)setTimeout(()=>map.invalidateSize(),260);}
+function locateUser(){const status=document.getElementById('locationStatus');status.style.display='block';if(!navigator.geolocation){status.textContent='Ta przeglądarka nie obsługuje lokalizacji.';return;}status.textContent='Pobieram lokalizację…';navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude,lon=pos.coords.longitude;if(map){if(userLocationMarker)map.removeLayer(userLocationMarker);userLocationMarker=L.circleMarker([lat,lon],{radius:9,color:'#fff',weight:3,fillColor:'#2563eb',fillOpacity:1}).addTo(map).bindPopup('Twoja lokalizacja');map.setView([lat,lon],16);userLocationMarker.openPopup();}status.textContent='Pokazano Twoją lokalizację.';},err=>{status.textContent=err.code===1?'Brak zgody na lokalizację. Włącz ją w ustawieniach przeglądarki.':'Nie udało się pobrać lokalizacji.';},{enableHighAccuracy:true,timeout:12000,maximumAge:30000});}
 function saveLabelSettings(){labelSettings={line:document.getElementById('showLine').checked,brigade:document.getElementById('showBrigade').checked,fleet:document.getElementById('showFleet').checked};localStorage.setItem('transportie-labels',JSON.stringify(labelSettings));const summary=document.getElementById('mapLabelSummary');if(summary)summary.textContent='Etykiety: '+([labelSettings.line?'Linia':null,labelSettings.brigade?'Brygada':null,labelSettings.fleet?'Tabor':null].filter(Boolean).join(' · ')||'wyłączone');refreshTooltips();}
 function brigadeFor(v){const service=String(v.vehicleService||'');const match=service.match(/-(\d{2})$/);return match?match[1]:'—';}
 function labelFor(v){const parts=[];if(labelSettings.line)parts.push('Linia '+(v.routeShortName||'?'));if(labelSettings.brigade)parts.push('Brygada '+brigadeFor(v));if(labelSettings.fleet)parts.push('Tabor '+(v.vehicleCode||'?'));return parts.join(' · ')||'Pojazd';}
 function isTram(v){const route=String(v.routeShortName||'').trim();const service=String(v.vehicleType||v.type||v.vehicleService||'').toLowerCase();return service.includes('tram')||/^(2|3|4|5|6|7|8|9|10|11|12)$/.test(route);}
-function vehicleIcon(v){const label=labelFor(v);const tram=isTram(v);const color=tram?'#2878df':'#dc3545';const width=Math.max(44,Math.min(180,label.length*7+20));return L.divIcon({className:'vehicle-marker',html:'<div class="vehicle-chip" style="background:'+color+';color:#fff;border:1px solid '+color+';border-radius:6px;padding:5px 8px;box-shadow:0 2px 7px #17243a44;font-weight:800;white-space:nowrap">'+safe(label)+'</div>',iconSize:[width,28],iconAnchor:[width/2,14]});}
+function vehicleIcon(v){const label=labelFor(v);const tram=isTram(v);const color=tram?'#2878df':'#dc3545';const width=Math.max(34,Math.min(150,label.length*5.7+14));return L.divIcon({className:'vehicle-marker',html:'<div class="vehicle-chip" style="background:'+color+';color:#fff;border:1px solid '+color+';border-radius:5px;padding:3px 5px;box-shadow:0 1px 4px #17243a33;font-weight:800;white-space:nowrap">'+safe(label)+'</div>',iconSize:[width,20],iconAnchor:[width/2,10]});}
 function vehiclePopup(v){const tram=isTram(v);const delay=v.delay!=null?v.delay:(v.delayInSeconds!=null?Math.round(v.delayInSeconds/60):null);const next=v.nextStops||[];return '<div class="vehicle-popup"><b style="font-size:16px">'+(tram?'🚊 Tramwaj':'🚌 Autobus')+' '+safe(v.routeShortName)+'</b><div>Tabor: <b>'+safe(v.vehicleCode)+'</b></div><div>Brygada: <b>'+safe(brigadeFor(v))+'</b></div><div>Opóźnienie: <b>'+(delay==null?'brak danych':(delay>0?'+'+delay:delay)+' min')+'</b></div><hr><b>Następne przystanki</b>'+(next.length?next.slice(0,2).map(s=>'<div>'+safe(s.name||s.stopName)+' · '+safe(s.time||s.arrivalTime)+'</div>').join(''):'<div>Brak danych o kolejnych przystankach</div>')+'<hr><div>Końcowy: '+safe(v.destination||v.finalStop||'brak danych')+'</div><div>Przyjazd: '+safe(v.finalArrival||'brak danych')+'</div></div>';}
 function refreshTooltips(){vehicles.forEach(v=>{const id=String(v.vehicleCode||'');if(markers[id]){markers[id].setIcon(vehicleIcon(v));markers[id].setPopupContent(vehiclePopup(v));}});}
 function safe(value){return String(value==null?'—':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
