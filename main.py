@@ -307,7 +307,7 @@ async def auth_signup(payload: dict):
     if not SUPABASE_URL or not SUPABASE_KEY:
         return JSONResponse(status_code=503, content={"message": "Logowanie nie jest skonfigurowane w Render."})
     if not SUPABASE_SERVICE_ROLE_KEY:
-        return JSONResponse(status_code=503, content={"message": "Rejestracja wymaga dodania SUPABASE_SERVICE_ROLE_KEY w Render. Klucz ustaw wyłącznie w zmiennych środowiskowych."})
+        return JSONResponse(status_code=503, content={"message": "Brakuje klucza administracyjnego. W istniejącej zmiennej SUPABASE_KEY ustaw wartość w formacie: klucz_publishable|klucz_secret|mallytransportie. Nie dodawaj nowej zmiennej. Klucz secret pozostaje wyłącznie po stronie serwera."})
     username = str(payload.get("username", "")).strip().lower()
     password = str(payload.get("password", ""))
     if not __import__("re").fullmatch(r"[a-z0-9._]{3,24}", username) or len(password) < 8:
