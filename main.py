@@ -9,6 +9,7 @@ app = FastAPI(title="Transportie")
 GPS_URL = "https://ckan2.multimediagdansk.pl/gpsPositions?v=2"
 VEHICLE_DB_URL = "https://files.cloudgdansk.pl/d/otwarte-dane/ztm/baza-pojazdow.json?v=2"
 STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/d3e96eb6-25ad-4d6c-8651-b1eb39155945/download/stopsingdansk.json"
+STOPS_IN_TRIPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/3115d29d-b763-4af5-93f6-763b835967d6/download/stopsintrips.json"
 DEPARTURES_URL = "https://ckan2.multimediagdansk.pl/departures"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 # On Render plans with a low environment-variable limit, the existing
@@ -27,6 +28,8 @@ OWNER_USERNAME = (
 )
 _stops_cache = []
 _stops_loaded_at = 0
+_stops_in_trips_cache = []
+_stops_in_trips_loaded_at = 0
 _vehicle_db = {}
 _vehicle_db_loaded_at = 0
 
@@ -741,6 +744,96 @@ async def get_stops():
         return {"stops": stops}
     except Exception as error:
         return JSONResponse(status_code=502, content={"stops": [], "error": str(error)})
+
+
+@app.get("/api/vehicle-route/{route_id}/{trip_id}")
+async def get_vehicle_route(route_id: str, trip_id: str):
+    """Return the ordered passenger stops for the exact live TRISTAR route variant."""
+    global _stops_in_trips_cache, _stops_in_trips_loaded_at, _stops_cache, _stops_loaded_at
+    try:
+        async with httpx.AsyncClient(timeout=35, follow_redirects=True) as client:
+            if not _stops_in_trips_cache or time.time() - _stops_in_trips_loaded_at > 86400:
+                response = await client.get(STOPS_IN_TRIPS_URL)
+                response.raise_for_status()
+                raw = response.json()
+                records = raw if isinstance(raw, list) else []
+                if isinstance(raw, dict):
+                    records = raw.get("stopsInTrip") or raw.get("results") or raw.get("data") or []
+                    if not records:
+                        dated = [
+                            (key, value.get("stopsInTrip"))
+                            for key, value in raw.items()
+                            if isinstance(value, dict) and isinstance(value.get("stopsInTrip"), list)
+                        ]
+                        if dated:
+                            records = sorted(dated, key=lambda entry: entry[0])[-1][1]
+                if not isinstance(records, list):
+                    records = []
+                _stops_in_trips_cache = records
+                _stops_in_trips_loaded_at = time.time()
+
+            if not _stops_cache or time.time() - _stops_loaded_at > 86400:
+                stops_response = await client.get(STOPS_URL)
+                stops_response.raise_for_status()
+                stop_raw = stops_response.json()
+                stop_records = stop_raw if isinstance(stop_raw, list) else []
+                if isinstance(stop_raw, dict):
+                    stop_records = stop_raw.get("stops") or stop_raw.get("results") or stop_raw.get("data") or []
+                    if not stop_records:
+                        dated = [
+                            (key, value.get("stops"))
+                            for key, value in stop_raw.items()
+                            if isinstance(value, dict) and isinstance(value.get("stops"), list)
+                        ]
+                        if dated:
+                            stop_records = sorted(dated, key=lambda entry: entry[0])[-1][1]
+                _stops_cache = stop_records if isinstance(stop_records, list) else []
+                _stops_loaded_at = time.time()
+
+        stop_lookup = {}
+        for stop in _stops_cache:
+            if not isinstance(stop, dict):
+                continue
+            sid = stop.get("stopId", stop.get("stop_id", stop.get("id")))
+            if sid is None:
+                continue
+            stop_lookup[str(sid)] = {
+                "stopId": str(sid),
+                "name": stop.get("stopName") or stop.get("stopDesc") or stop.get("stop_name") or stop.get("name") or "Przystanek",
+                "code": stop.get("subName") or stop.get("stopCode") or "",
+            }
+
+        matches = [
+            row for row in _stops_in_trips_cache
+            if isinstance(row, dict)
+            and str(row.get("routeId")) == str(route_id)
+            and str(row.get("tripId")) == str(trip_id)
+        ]
+        matches.sort(key=lambda row: int(row.get("stopSequence") or 0))
+        result = []
+        for row in matches:
+            if row.get("passenger") is False:
+                continue
+            sid = str(row.get("stopId", ""))
+            stop = stop_lookup.get(sid, {"stopId": sid, "name": "Przystanek", "code": ""})
+            result.append({
+                "stopId": sid,
+                "name": stop["name"],
+                "code": stop["code"],
+                "sequence": row.get("stopSequence"),
+            })
+        return {
+            "routeId": route_id,
+            "tripId": trip_id,
+            "stops": result,
+            "count": len(result),
+            "source": "ZTM stopsInTrip + stops",
+        }
+    except Exception as error:
+        return JSONResponse(
+            status_code=502,
+            content={"stops": [], "count": 0, "error": "Nie udało się pobrać przystanków kursu: " + str(error)[:220]},
+        )
 
 
 @app.get("/api/departures/{stop_id}")
