@@ -26,10 +26,10 @@ header{padding:22px clamp(16px,4vw,42px) 18px;display:flex;align-items:center;ju
 h1{font-size:25px;margin:0;letter-spacing:-.7px}.subtitle{color:var(--muted);font-size:13px;margin-top:4px}
 .live-pill{background:#e8f8ef;color:#16834b;padding:9px 13px;border-radius:30px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}.dot{width:7px;height:7px;background:#20b56a;border-radius:50%}
 nav{display:flex;gap:8px;padding:0 clamp(16px,4vw,42px) 18px;overflow-x:auto}
-nav button,.primary,.secondary,.icon-button{border:0;border-radius:12px;padding:11px 15px;font-weight:650;font-size:13px;cursor:pointer;white-space:nowrap}
-nav button{background:transparent;color:#66758d}nav button.active{background:white;color:var(--blue);box-shadow:var(--shadow)}
+nav button,nav a,.primary,.secondary,.icon-button{border:0;border-radius:12px;padding:11px 15px;font-weight:650;font-size:13px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block}
+nav button,nav a{background:transparent;color:#66758d}nav a:focus,nav a:target{background:white;color:var(--blue);box-shadow:var(--shadow)}
 main{padding:0 clamp(16px,4vw,42px) 40px}
-section{display:none}section.active{display:block}
+section{display:none}section.active{display:block}section:target{display:block}main:has(section:target) section.active{display:none}
 .section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin:8px 0 16px}
 h2{font-size:21px;letter-spacing:-.4px;margin:0 0 5px}.hint{font-size:13px;color:var(--muted)}
 .surface{background:var(--surface);border:1px solid #fff;border-radius:20px;box-shadow:var(--shadow);padding:17px;backdrop-filter:blur(12px)}
@@ -62,11 +62,11 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  <div class="live-pill"><span class="dot"></span><span id="connection">Łączenie z GPS</span></div>
 </header>
 <nav>
- <button class="active" data-section="mapa" onclick="showSection('mapa',this)">🗺️ Mapa</button>
- <button data-section="ulubione" onclick="showSection('ulubione',this)">⭐ Ulubione</button>
- <button data-section="wyjechalo" onclick="showSection('wyjechalo',this)">🚌 Co wyjechało</button>
- <button data-section="linia" onclick="showSection('linia',this)">🔎 Pojazdy na linii</button>
- <button data-section="ustawienia" onclick="showSection('ustawienia',this)">⚙️ Ustawienia</button>
+ <a class="active" href="#mapa">🗺️ Mapa</a>
+ <a href="#ulubione">⭐ Ulubione</a>
+ <a href="#wyjechalo">🚌 Co wyjechało</a>
+ <a href="#linia">🔎 Pojazdy na linii</a>
+ <a href="#ustawienia">⚙️ Ustawienia</a>
 </nav>
 <main>
 <section id="mapa" class="active">
