@@ -289,7 +289,7 @@ function brigadeFor(v){const service=String(v.vehicleService||'');const match=se
 function labelFor(v){const parts=[];if(labelSettings.line)parts.push('Linia '+(v.routeShortName||'?'));if(labelSettings.brigade)parts.push('Brygada '+brigadeFor(v));if(labelSettings.fleet)parts.push('Tabor '+(v.vehicleCode||'?'));return parts.join(' · ')||'Pojazd';}
 function isTram(v){const route=String(v.routeShortName||'').trim();const service=String(v.vehicleType||v.type||v.vehicleService||'').toLowerCase();return service.includes('tram')||/^(2|3|4|5|6|7|8|9|10|11|12)$/.test(route);}
 function vehicleIcon(v){const label=labelFor(v);const tram=isTram(v);const color=tram?'#2878df':'#dc3545';const zoom=map?map.getZoom():14;if(zoom<=12)return L.divIcon({className:'vehicle-marker',html:'<div class="vehicle-dot" style="background:'+color+'"></div>',iconSize:[12,12],iconAnchor:[6,6]});const compact=zoom<=14;const shown=compact?(v.routeShortName||'•'):label;const width=Math.max(28,Math.min(150,shown.length*5.7+14));return L.divIcon({className:'vehicle-marker',html:'<div class="vehicle-chip" style="background:'+color+';color:#fff;border:1px solid '+color+';border-radius:5px;padding:'+(compact?'2px 4px':'3px 5px')+';font-size:'+(compact?'9px':'10px')+';box-shadow:0 1px 4px #17243a33;font-weight:800;white-space:nowrap">'+safe(shown)+'</div>',iconSize:[width,compact?16:20],iconAnchor:[width/2,compact?8:10]});}
-function formatDelaySeconds(value){if(value===null||value===undefined||value===''||!Number.isFinite(Number(value)))return 'brak danych';const minutes=Math.round(Number(value)/60);if(minutes>0)return '+'+minutes+' min';if(minutes<0)return Math.abs(minutes)+' min przed czasem';return 'punktualnie';}
+function formatDelaySeconds(value){if(value===null||value===undefined||value===''||!Number.isFinite(Number(value)))return 'brak danych';const minutes=Math.round(Number(value)/60);if(minutes>0)return '-'+minutes+' min';if(minutes<0)return '+'+Math.abs(minutes)+' min';return 'punktualnie';}
 function vehicleField(label,value,extra){if(value===undefined||value===null||value==='')return '';return '<div class="vehicle-detail-field"><span>'+safe(label)+'</span><b '+(extra||'')+'>'+safe(value)+'</b></div>';}
 function vehicleValue(v,keys){for(const key of keys){if(v[key]!==undefined&&v[key]!==null&&v[key]!=='')return v[key];}return null;}
 function openVehicleDetails(v){
@@ -866,8 +866,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
         ]
         matches.sort(key=lambda row: int(row.get("stopSequence") or 0))
 
-        # Prefer the live vehicle service name; GPS and timetable trip IDs
-        # can differ between feed versions. Fall back to tripId and route stop IDs.
+        # Match timetable to the live vehicle, tolerating different tripId formats.
         scheduled_by_stop = {}
         schedule_row_count = 0
         schedule_match = "none"
@@ -875,7 +874,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             today = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
             cache_key = today + ":" + str(route_id)
             cached = _stop_times_cache.get(cache_key)
-            if not cached or time.time() - cached.get("loaded_at", 0) > 3600:
+            if not cached or time.time() - cached.get("loaded_at", 0) > 1800:
                 schedule_records = []
                 last_error = None
                 for base_url in ("https://ckan2.multimediagdansk.pl/stopTimes", "http://ckan2.multimediagdansk.pl/stopTimes"):
@@ -904,36 +903,46 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 cached = {"loaded_at": time.time(), "records": schedule_records}
                 _stop_times_cache[cache_key] = cached
 
-            schedule_rows = cached.get("records", [])
+            schedule_rows = [item for item in cached.get("records", []) if isinstance(item, dict)]
             schedule_row_count = len(schedule_rows)
-            route_schedule = [
-                item for item in schedule_rows
-                if isinstance(item, dict) and str(item.get("routeId", "")).strip() == str(route_id).strip()
-            ]
-            selected_schedule = []
+            def norm_id(value):
+                return str(value).strip().replace(".0", "") if value is not None else ""
+            route_schedule = [item for item in schedule_rows if norm_id(item.get("routeId")) == norm_id(route_id)]
+            trip_schedule = [item for item in route_schedule if norm_id(item.get("tripId")) == norm_id(trip_id)]
+            if not trip_schedule:
+                trip_schedule = [item for item in schedule_rows if norm_id(item.get("tripId")) == norm_id(trip_id)]
             if vehicle_service:
-                selected_schedule = [
+                service_rows = [
                     item for item in route_schedule
-                    if str(item.get("busServiceName") or item.get("vehicleService") or "").strip() == str(vehicle_service).strip()
+                    if norm_id(item.get("busServiceName") or item.get("vehicleService")) == norm_id(vehicle_service)
                 ]
-                if selected_schedule:
+                if service_rows:
+                    trip_schedule = service_rows
                     schedule_match = "vehicleService"
-            if not selected_schedule:
-                selected_schedule = [
-                    item for item in route_schedule
-                    if str(item.get("tripId", "")).strip() == str(trip_id).strip()
-                ]
-                if selected_schedule:
-                    schedule_match = "tripId"
-            if not selected_schedule:
-                trip_stop_ids = {str(row.get("stopId")) for row in matches if row.get("stopId") is not None}
-                selected_schedule = [item for item in route_schedule if str(item.get("stopId")) in trip_stop_ids]
-                if selected_schedule:
-                    schedule_match = "routeStops"
-            for item in selected_schedule:
-                sid = item.get("stopId")
-                if sid is not None:
-                    scheduled_by_stop[str(sid)] = item.get("departureTime") or item.get("arrivalTime")
+            if trip_schedule and schedule_match != "vehicleService":
+                schedule_match = "tripId"
+            if not trip_schedule and route_schedule:
+                route_stop_ids = {norm_id(row.get("stopId")) for row in matches}
+                grouped = {}
+                for item in route_schedule:
+                    key = (norm_id(item.get("tripId")), norm_id(item.get("busServiceName") or item.get("vehicleService")))
+                    grouped.setdefault(key, []).append(item)
+                ranked = sorted(
+                    grouped.values(),
+                    key=lambda group: len(route_stop_ids.intersection({norm_id(item.get("stopId")) for item in group})),
+                    reverse=True,
+                )
+                if ranked:
+                    best = ranked[0]
+                    overlap = route_stop_ids.intersection({norm_id(item.get("stopId")) for item in best})
+                    if overlap:
+                        trip_schedule = best
+                        schedule_match = "bestStopSequence"
+            for item in trip_schedule:
+                sid = norm_id(item.get("stopId"))
+                value = item.get("departureTime") or item.get("arrivalTime")
+                if sid and value:
+                    scheduled_by_stop[sid] = value
         except Exception as schedule_error:
             scheduled_by_stop = {}
             schedule_match = "error: " + str(schedule_error)[:120]
@@ -955,7 +964,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                     except ValueError:
                         parsed = datetime.strptime(raw_time[:8], "%H:%M:%S")
                     scheduled_time = parsed.strftime("%H:%M")
-                    if delay is not None and delay != 0:
+                    if delay is not None:
                         adjusted = datetime(2000, 1, 1, parsed.hour, parsed.minute, parsed.second) + timedelta(seconds=delay)
                         estimated_time = adjusted.strftime("%H:%M")
                 except (TypeError, ValueError):
