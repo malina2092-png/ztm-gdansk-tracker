@@ -57,7 +57,26 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 .check{display:flex;gap:9px;align-items:center;padding:12px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:13px}
 .check input{accent-color:var(--blue)}
 .small-note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}
-@media(max-width:850px){#map{height:100dvh;min-height:100dvh}#mapa .map-side{width:210px}}\n@media(max-width:520px){header{top:10px;right:10px}.live-pill{padding:8px 10px}nav{left:8px;right:8px;top:auto;bottom:8px;width:auto;height:auto;flex-direction:row;justify-content:space-around;padding:7px;gap:3px;border-radius:16px}nav button{width:auto;flex:1;text-align:center;padding:10px 5px;font-size:10px}nav button.active{box-shadow:inset 0 -3px var(--blue)}#mapa .map-side{top:58px;right:8px;width:155px;gap:6px}#mapa .map-side .surface{padding:9px;border-radius:12px}#mapa .map-side .stat strong{font-size:18px}#mapa .map-side .stat span{font-size:10px}#mapa .map-side .surface:nth-child(3){display:none}section:not(#mapa).active{padding:12px 10px 90px}.section-head{display:block}}
+@media(max-width:850px){
+ #map{height:100dvh;min-height:100dvh}
+ #mapa .map-side{width:190px}
+}
+@media(max-width:520px){
+ header{top:10px;right:8px}
+ .live-pill{padding:7px 9px;font-size:10px}
+ nav{position:fixed;z-index:1200;left:7px;top:7px;bottom:7px;right:auto;width:142px;height:auto;flex-direction:column;justify-content:flex-start;align-items:stretch;padding:9px 7px;gap:6px;border-radius:17px;overflow-y:auto}
+ nav button{width:100%;flex:none;text-align:left;padding:12px 8px;font-size:11px;white-space:normal}
+ nav button.active{box-shadow:inset 3px 0 var(--blue)}
+ #mapa .map-side{top:58px;right:7px;width:135px;gap:6px}
+ #mapa .map-side .surface{padding:8px;border-radius:11px}
+ #mapa .map-side .stat strong{font-size:17px}
+ #mapa .map-side .stat span{font-size:9px}
+ #mapa .map-side .surface:nth-child(3){display:none}
+ section:not(#mapa).active{margin-left:150px;padding:68px 9px 20px}
+ section:not(#mapa).active .section-head{display:block}
+ section:not(#mapa).active .surface{padding:10px}
+ section:not(#mapa).active table{font-size:11px}
+}
 </style>
 </head>
 <body>
