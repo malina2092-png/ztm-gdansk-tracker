@@ -310,8 +310,8 @@ async function updateVehicles(){
  vehiclesUpdateInFlight=true;
  try{
   const response=await fetch('/api/live',{cache:'no-store'});
-  if(!response.ok)throw new Error('API');
   const data=await response.json();
+  if(!response.ok||data.error)throw new Error(data.error||('Błąd API GPS ('+response.status+')'));
   vehicles=Array.isArray(data.vehicles)?data.vehicles:[];
   document.getElementById('connection').textContent='GPS aktywny';
   document.getElementById('vehicleCountSettings').textContent='Widoczne pojazdy: '+vehicles.length;
@@ -345,7 +345,7 @@ async function updateVehicles(){
   document.getElementById('connection').textContent='Brak połączenia GPS';
   document.getElementById('vehicleCountSettings').textContent='Widoczne pojazdy: —';
   document.getElementById('lastUpdateSettings').textContent='Ostatnia aktualizacja: —';
-  document.getElementById('dataStatus').textContent='Połączenie z danymi: błąd';
+  document.getElementById('dataStatus').textContent='GPS: '+String(error&&error.message||'błąd połączenia').slice(0,180);
  }finally{vehiclesUpdateInFlight=false;}
 }
 const summary=document.getElementById('mapLabelSummary');if(summary)summary.textContent='Etykiety: '+([labelSettings.line?'Linia':null,labelSettings.brigade?'Brygada':null,labelSettings.fleet?'Tabor':null].filter(Boolean).join(' · ')||'wyłączone');
@@ -360,46 +360,96 @@ updateVehicles();if(map)loadStops();refreshAccount();setInterval(updateVehicles,
 async def live():
     global _vehicle_db, _vehicle_db_loaded_at
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "Transportie/1.0 (ZTM Gdansk live tracker)",
+        }
+        async with httpx.AsyncClient(timeout=httpx.Timeout(25.0, connect=10.0), follow_redirects=True, headers=headers) as client:
             response = await client.get(GPS_URL)
             response.raise_for_status()
             data = response.json()
 
-            # Static fleet data is refreshed at most once per hour.
+            if not isinstance(data, dict):
+                raise ValueError("Źródło GPS zwróciło nieoczekiwany format danych.")
+
+            # Static fleet data is optional; GPS must continue working without it.
             if time.time() - _vehicle_db_loaded_at > 3600:
                 try:
                     fleet_response = await client.get(VEHICLE_DB_URL)
                     fleet_response.raise_for_status()
                     fleet_data = fleet_response.json()
+                    rows = fleet_data.get("results", []) if isinstance(fleet_data, dict) else []
                     _vehicle_db = {
                         str(item.get("vehicleCode")): item
-                        for item in fleet_data.get("results", [])
-                        if item.get("vehicleCode") is not None
+                        for item in rows
+                        if isinstance(item, dict) and item.get("vehicleCode") is not None
                     }
                     _vehicle_db_loaded_at = time.time()
                 except Exception:
                     pass
 
-        vehicles = data.get("vehicles", [])
-        for vehicle in vehicles:
-            fleet = _vehicle_db.get(str(vehicle.get("vehicleCode")), {})
+        raw_vehicles = data.get("vehicles") or data.get("Vehicles") or []
+        if isinstance(raw_vehicles, dict):
+            raw_vehicles = list(raw_vehicles.values())
+        if not isinstance(raw_vehicles, list):
+            raise ValueError("Źródło GPS nie zwróciło listy pojazdów.")
+
+        vehicles = []
+        for raw in raw_vehicles:
+            if not isinstance(raw, dict):
+                continue
+            # Normalise documented ZTM v2 names and tolerate legacy capitalised fields.
+            vehicle = dict(raw)
+            aliases = {
+                "vehicleCode": ("VehicleCode",),
+                "routeShortName": ("Line", "line"),
+                "tripId": ("Route", "route"),
+                "vehicleService": ("VehicleService",),
+                "vehicleId": ("VehicleId",),
+                "speed": ("Speed",),
+                "delay": ("Delay",),
+                "lat": ("Lat", "latitude", "Latitude"),
+                "lon": ("Lon", "lng", "longitude", "Longitude"),
+                "gpsQuality": ("GPSQuality", "gps_quality"),
+                "generated": ("DataGenerated", "dataGenerated"),
+                "headsign": ("Headsign",),
+                "direction": ("Direction",),
+            }
+            for target, sources in aliases.items():
+                if vehicle.get(target) is None:
+                    for source in sources:
+                        if vehicle.get(source) is not None:
+                            vehicle[target] = vehicle[source]
+                            break
+
+            code = vehicle.get("vehicleCode")
+            fleet = _vehicle_db.get(str(code), {}) if code is not None else {}
             vehicle["carrier"] = (
-                fleet.get("carrirer")
-                or fleet.get("carrier")
+                fleet.get("carrier")
+                or fleet.get("carrirer")
                 or fleet.get("operator")
                 or "—"
             )
             vehicle["fleetInfo"] = fleet
+            vehicles.append(vehicle)
+
         return {
             "lastUpdate": data.get("lastUpdate"),
-            "vehicles": vehicles
+            "vehicles": vehicles,
+            "count": len(vehicles),
+            "source": "ZTM GPS v2",
         }
     except Exception as error:
-        return {
-            "lastUpdate": None,
-            "vehicles": [],
-            "error": str(error)
-        }
+        return JSONResponse(
+            status_code=502,
+            content={
+                "lastUpdate": None,
+                "vehicles": [],
+                "count": 0,
+                "source": "ZTM GPS v2",
+                "error": "Nie udało się pobrać danych GPS ZTM: " + str(error)[:240],
+            },
+        )
 
 @app.get("/api/auth/config")
 def auth_config():
