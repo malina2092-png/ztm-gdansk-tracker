@@ -137,7 +137,7 @@ function loadMapLibrary(){
 }
 const markers={};let vehicles=[];
 loadMapLibrary();
-let labelSettings={line:true,brigade:false,fleet:true};
+let labelSettings={line:true,brigade:true,fleet:true};
 try{const saved=JSON.parse(localStorage.getItem('transportie-labels')||'null');if(saved)labelSettings={...labelSettings,...saved};}catch(e){}
 document.getElementById('showLine').checked=labelSettings.line;
 document.getElementById('showBrigade').checked=labelSettings.brigade;
