@@ -375,6 +375,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   const stops=Array.isArray(data.stops)?data.stops:[];
   const diag=data.diagnostics||{};
   const diagnostic='<details class="course-diagnostics"'+(Number(data.timesFound||0)===0?' open':'')+'><summary>Diagnostyka godzin</summary><div class="course-diagnostics-body">'+
+   '<div>GPS routeId / tripId: <b>'+safe(data.routeId||'—')+' / '+safe(data.tripId||'—')+'</b></div>'+
    '<div>Data rozkładu: <b>'+safe(diag.date||'—')+'</b></div>'+
    '<div>Przystanki wariantu GPS: <b>'+safe(diag.tripStops??'—')+'</b></div>'+
    '<div>Wiersze pobrane z rozkładu: <b>'+safe(data.scheduleRows??'—')+'</b></div>'+
@@ -384,6 +385,8 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
    '<div>Metoda dopasowania: <b>'+safe(data.scheduleMatch||'brak')+'</b></div>'+
    '<div>Godziny dopasowane do przystanków: <b>'+safe(data.timesFound??0)+'</b></div>'+
    '<div>Identyfikatory kursów: <b>'+safe((diag.tripIds||[]).join(', ')||'brak')+'</b></div>'+
+   '<div>Pola rekordu ZTM: <b>'+safe((diag.sampleKeys||[]).join(', ')||'brak')+'</b></div>'+
+   '<div>Przykładowe rekordy ZTM: <pre style="white-space:pre-wrap;max-height:180px;overflow:auto;font-size:10px">'+safe(JSON.stringify(diag.sampleRows||[],null,2))+'</pre></div>'+
    (diag.error?'<div class="course-diagnostics-error">Błąd rozkładu: '+safe(diag.error)+'</div>':'')+
    '</div></details>';
   if(!stops.length){
@@ -890,6 +893,8 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             "tripRows": 0,
             "serviceRows": 0,
             "tripIds": [],
+            "sampleKeys": [],
+            "sampleRows": [],
             "error": None,
         }
         try:
@@ -927,6 +932,12 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
 
             schedule_rows = [item for item in cached.get("records", []) if isinstance(item, dict)]
             schedule_row_count = len(schedule_rows)
+            if schedule_rows:
+                schedule_diagnostics["sampleKeys"] = sorted(schedule_rows[0].keys())[:30]
+                schedule_diagnostics["sampleRows"] = [
+                    {key: item.get(key) for key in ("routeId", "tripId", "stopId", "stopSequence", "departureTime", "arrivalTime", "busServiceName", "vehicleService")}
+                    for item in schedule_rows[:3]
+                ]
             def norm_id(value):
                 return str(value).strip().replace(".0", "") if value is not None else ""
             route_schedule = [item for item in schedule_rows if norm_id(item.get("routeId")) == norm_id(route_id)]
