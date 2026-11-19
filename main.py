@@ -866,50 +866,77 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
         ]
         matches.sort(key=lambda row: int(row.get("stopSequence") or 0))
 
-        # Fetch the official stop-time table for today's local date and this route.
+        # Prefer the live vehicle service name; GPS and timetable trip IDs
+        # can differ between feed versions. Fall back to tripId and route stop IDs.
         scheduled_by_stop = {}
+        schedule_row_count = 0
+        schedule_match = "none"
         try:
             today = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
             cache_key = today + ":" + str(route_id)
             cached = _stop_times_cache.get(cache_key)
             if not cached or time.time() - cached.get("loaded_at", 0) > 3600:
-                schedule_response = await client.get(
-                    "http://ckan2.multimediagdansk.pl/stopTimes",
-                    params={"date": today, "routeId": route_id},
-                )
-                schedule_response.raise_for_status()
-                schedule_raw = schedule_response.json()
-                schedule_records = schedule_raw.get("stopTimes", []) if isinstance(schedule_raw, dict) else []
-                if not schedule_records and isinstance(schedule_raw, dict):
-                    dated = [
-                        value.get("stopTimes")
-                        for key, value in schedule_raw.items()
-                        if isinstance(value, dict) and isinstance(value.get("stopTimes"), list)
-                    ]
-                    if dated:
-                        schedule_records = dated[-1]
-                cached = {"loaded_at": time.time(), "records": schedule_records if isinstance(schedule_records, list) else []}
+                schedule_records = []
+                last_error = None
+                for base_url in ("https://ckan2.multimediagdansk.pl/stopTimes", "http://ckan2.multimediagdansk.pl/stopTimes"):
+                    try:
+                        schedule_response = await client.get(base_url, params={"date": today, "routeId": route_id})
+                        schedule_response.raise_for_status()
+                        schedule_raw = schedule_response.json()
+                        if isinstance(schedule_raw, list):
+                            schedule_records = schedule_raw
+                        elif isinstance(schedule_raw, dict):
+                            candidate = schedule_raw.get("stopTimes") or schedule_raw.get("results") or schedule_raw.get("data") or []
+                            if isinstance(candidate, dict):
+                                candidate = candidate.get("stopTimes") or candidate.get("results") or []
+                            if not candidate:
+                                for value in schedule_raw.values():
+                                    if isinstance(value, dict):
+                                        candidate = value.get("stopTimes") or value.get("results") or []
+                                        if candidate:
+                                            break
+                            schedule_records = candidate if isinstance(candidate, list) else []
+                        break
+                    except Exception as fetch_error:
+                        last_error = fetch_error
+                if not schedule_records and last_error:
+                    raise last_error
+                cached = {"loaded_at": time.time(), "records": schedule_records}
                 _stop_times_cache[cache_key] = cached
+
             schedule_rows = cached.get("records", [])
-            matching_schedule = [
+            schedule_row_count = len(schedule_rows)
+            route_schedule = [
                 item for item in schedule_rows
-                if isinstance(item, dict)
-                and str(item.get("routeId")) == str(route_id)
-                and str(item.get("tripId")) == str(trip_id)
+                if isinstance(item, dict) and str(item.get("routeId", "")).strip() == str(route_id).strip()
             ]
+            selected_schedule = []
             if vehicle_service:
-                exact_service = [
-                    item for item in matching_schedule
-                    if str(item.get("busServiceName") or item.get("vehicleService") or "") == str(vehicle_service)
+                selected_schedule = [
+                    item for item in route_schedule
+                    if str(item.get("busServiceName") or item.get("vehicleService") or "").strip() == str(vehicle_service).strip()
                 ]
-                if exact_service:
-                    matching_schedule = exact_service
-            for item in matching_schedule:
+                if selected_schedule:
+                    schedule_match = "vehicleService"
+            if not selected_schedule:
+                selected_schedule = [
+                    item for item in route_schedule
+                    if str(item.get("tripId", "")).strip() == str(trip_id).strip()
+                ]
+                if selected_schedule:
+                    schedule_match = "tripId"
+            if not selected_schedule:
+                trip_stop_ids = {str(row.get("stopId")) for row in matches if row.get("stopId") is not None}
+                selected_schedule = [item for item in route_schedule if str(item.get("stopId")) in trip_stop_ids]
+                if selected_schedule:
+                    schedule_match = "routeStops"
+            for item in selected_schedule:
                 sid = item.get("stopId")
                 if sid is not None:
                     scheduled_by_stop[str(sid)] = item.get("departureTime") or item.get("arrivalTime")
-        except Exception:
+        except Exception as schedule_error:
             scheduled_by_stop = {}
+            schedule_match = "error: " + str(schedule_error)[:120]
 
         result = []
         for row in matches:
@@ -967,6 +994,9 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             "stops": result,
             "count": len(result),
             "currentIndex": current_index,
+            "scheduleRows": schedule_row_count,
+            "scheduleMatch": schedule_match,
+            "timesFound": len(scheduled_by_stop),
             "source": "ZTM stopsInTrip + stops + stopTimes",
         }
     except Exception as error:
