@@ -365,11 +365,16 @@ function openVehicleDetails(v){
   return vehicleField(label,display);
  }).join('');
  const technical=technicalRows?'<div class="vehicle-detail-section"><h3>Dane techniczne</h3><div class="vehicle-detail-grid">'+technicalRows+'</div></div>':'';
+  const vehicleTab='<div class="vehicle-detail-section"><h3>Informacje o pojeździe</h3><div class="vehicle-detail-grid">'+(fields||'<div class="vehicle-detail-empty">Brak danych pojazdu.</div>')+'</div></div>'+technical;
+ const brigadeTab='<div class="vehicle-detail-section"><h3>Rozkład brygadowy</h3><div class="vehicle-brigade-note">Godziny przystanków aktualnego kursu brygady <b>'+safe(brigade)+'</b>. Pełny rozkład całodziennej pracy brygady wymaga osobnych danych ZTM.</div><div id="vehicleBrigadeStops" class="vehicle-detail-stops"><div class="vehicle-detail-empty">Pobieranie godzin z rozkładu ZTM…</div></div></div>';
  content.innerHTML=
-  '<div class="vehicle-detail-head"><div class="vehicle-detail-line">'+safe(line||'—')+'</div><div><div class="vehicle-detail-type">'+(isTram(v)?'🚊 Tramwaj':'🚌 Autobus')+' · POJAZD LIVE</div><div class="vehicle-detail-title">#'+safe(fleet||'—')+'</div><span class="vehicle-live-status">Pozycja GPS na żywo</span></div></div>'+
-  '<div class="vehicle-detail-section"><h3>Informacje o pojeździe</h3><div class="vehicle-detail-grid">'+(fields||'<div class="vehicle-detail-empty">Brak danych pojazdu.</div>')+'</div></div>'+
-  routeStops+technical;
- overlay.classList.add('open');
+  '<div class="vehicle-detail-head"><div class="vehicle-detail-line">'+safe(line||'—')+'</div><div><div class="vehicle-detail-type">'+(isTram(v)?'🚊 Tramwaj':'🚌 Autobus')+' · POJAZD LIVE</div><div class="vehicle-detail-title">'+safe(direction||'Kurs w trakcie')+'</div><span class="vehicle-live-status">● Pozycja GPS na żywo</span></div></div>'+
+  '<div class="vehicle-detail-meta"><strong>#'+safe(fleet||'—')+'</strong><span>·</span><span>Brygada '+safe(brigade)+'</span><span>·</span><span>'+safe(speed==null?'—':String(speed)+' km/h')+'</span><span>·</span><span>'+safe(delay)+'</span></div>'+
+  '<div class="vehicle-detail-tabs"><button type="button" class="active" data-vehicle-tab="route" onclick="selectVehicleTab(\'route\',this)">TRASA</button><button type="button" data-vehicle-tab="vehicle" onclick="selectVehicleTab(\'vehicle\',this)">POJAZD</button><button type="button" data-vehicle-tab="brigade" onclick="selectVehicleTab(\'brigade\',this)">ROZKŁAD BRYGADOWY</button></div>'+
+  '<div class="vehicle-tab-panel active" data-vehicle-panel="route">'+routeStops+'</div>'+
+  '<div class="vehicle-tab-panel" data-vehicle-panel="vehicle">'+vehicleTab+'</div>'+
+  '<div class="vehicle-tab-panel" data-vehicle-panel="brigade">'+brigadeTab+'</div>';
+overlay.classList.add('open');
  overlay.setAttribute('aria-hidden','false');
  document.body.classList.add('vehicle-detail-open');
  selectedVehicleCode=String(v.vehicleCode||'');
@@ -426,6 +431,8 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
 }
 let vehicleRouteStopsTimer=null;
 function closeVehicleDetails(){const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open');selectedVehicleCode=null;if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}}
+function selectVehicleTab(tab,button){const root=document.getElementById('vehicleDetailContent');if(!root)return;root.querySelectorAll('[data-vehicle-tab]').forEach(x=>x.classList.toggle('active',x===button));root.querySelectorAll('[data-vehicle-panel]').forEach(x=>x.classList.toggle('active',x.getAttribute('data-vehicle-panel')===tab));}
+window.selectVehicleTab=selectVehicleTab;
 window.openVehicleDetails=openVehicleDetails;window.closeVehicleDetails=closeVehicleDetails;
 let selectedVehicleCode=null;
 function refreshTooltips(){vehicles.forEach(v=>{const id=String(v.vehicleCode||'');if(markers[id]){const icon=vehicleIcon(v),html=icon.options&&icon.options.html||'';if(markers[id]._transportieIconHtml!==html){markers[id].setIcon(icon);markers[id]._transportieIconHtml=html;}}});const zoom=map?map.getZoom():12,bounds=map?map.getBounds():null;Object.values(stopMarkers).forEach(marker=>{if(zoom>=15&&bounds&&bounds.contains(marker.getLatLng())){marker.openTooltip&&marker.openTooltip();}else{marker.closeTooltip&&marker.closeTooltip();}});}
