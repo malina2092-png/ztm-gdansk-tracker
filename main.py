@@ -93,6 +93,32 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  #map{height:100dvh;min-height:100dvh}
  #mapa .map-side{width:190px}
 }
+
+/* Czynaczas-inspired dark vehicle card */
+.vehicle-detail-overlay{padding:0;align-items:flex-end;justify-content:center}
+.vehicle-detail-backdrop{background:rgba(0,0,0,.16);backdrop-filter:none}
+.vehicle-detail-card{width:100%;max-width:none;max-height:53dvh;overflow-y:auto;overscroll-behavior:contain;background:#111;color:#eee;border:0;border-radius:20px 20px 0 0;padding:12px 0 calc(16px + env(safe-area-inset-bottom));box-shadow:0 -10px 35px #0007}
+.vehicle-detail-grabber{display:block;width:38px;height:4px;border-radius:8px;background:#555;margin:0 auto 12px}
+.vehicle-detail-close{top:10px;right:14px;background:transparent;color:#eee;font-size:28px;z-index:2}
+.vehicle-detail-head{gap:12px;padding:4px 58px 12px 16px;border:0}
+.vehicle-detail-line{min-width:58px;height:48px;border-radius:8px;background:#008e68;color:#fff;font-size:23px}
+.vehicle-detail-type{color:#aaa;font-size:10px}
+.vehicle-detail-title{color:#f4f4f4;font-size:19px}
+.vehicle-live-status{margin-top:5px;background:#087b25;color:#dfffe5;font-size:11px}
+.vehicle-detail-section h3{color:#999}
+.vehicle-detail-grid{gap:7px}
+.vehicle-detail-field{background:#191919;border:1px solid #303030;border-radius:9px;color:#eee}
+.vehicle-detail-field span{color:#999}.vehicle-detail-field b{color:#eee}
+.vehicle-detail-stops{max-height:none;overflow:visible;padding:2px 0;margin-top:4px}
+.vehicle-detail-stops .course-stop{min-height:58px;gap:12px;padding:9px 0;border-bottom:1px solid #292929}
+.course-stop-marker{width:22px;min-height:44px}.course-stop-marker:before{width:3px;background:#00a56a}
+.course-stop-marker:after{width:13px;height:13px;background:#00a56a;box-shadow:0 0 0 2px #111,0 0 0 3px #00a56a}
+.course-stop-name b{color:#e7e7e7;font-size:14px}.course-stop-name small{color:#999}
+.course-stop-time{color:#ddd;font-size:13px}.course-stop-time s{color:#aaa}.course-stop-time strong{color:#00c477}
+.vehicle-detail-empty{background:#1b1b1b;color:#aaa}
+@media(min-width:850px){.vehicle-detail-overlay{align-items:flex-end;justify-content:center;padding:0}.vehicle-detail-card{width:min(100%,850px);max-height:55vh;border-radius:20px 20px 0 0}}
+@media(max-width:520px){.vehicle-detail-overlay{padding:0}.vehicle-detail-card{width:100%;max-height:53dvh;border-radius:20px 20px 0 0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}.vehicle-detail-close{top:8px;right:12px}.vehicle-detail-head{padding:2px 52px 10px 16px}}
+
 @media(max-width:520px){#mapVehicleSearchPanel{top:74px;left:19px;right:19px;transform:none;width:auto;padding:6px;border-radius:12px}.map-search-input-wrap input{font-size:13px}.map-search-input-wrap{gap:7px}
  #mapZoom{top:154px}#myLocation{right:12px;left:auto;top:auto;bottom:12px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;font-size:0}#myLocation .loc-icon{width:29px;height:29px;font-size:21px}#locationStatus{right:12px;left:auto;bottom:62px;max-width:calc(100vw - 30px);text-align:center}
  header{top:10px;right:8px}
