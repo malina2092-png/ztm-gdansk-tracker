@@ -939,8 +939,11 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 ]
             schedule_diagnostics["tripRows"] = len(trip_schedule)
             if vehicle_service:
+                # Najpierw ograniczamy dane do wariantu GPS (tripId), dopiero potem
+                # do zadania pojazdu (vehicleService). Filtrowanie po samym
+                # vehicleService mieszało kursy jadące różnymi wariantami tej samej linii.
                 service_rows = [
-                    item for item in route_schedule
+                    item for item in trip_schedule
                     if norm_id(item.get("busServiceName") or item.get("bus_service_name") or item.get("vehicleService") or item.get("vehicle_service")) == norm_id(vehicle_service)
                 ]
                 schedule_diagnostics["serviceRows"] = len(service_rows)
