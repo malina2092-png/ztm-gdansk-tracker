@@ -897,13 +897,13 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                         if isinstance(schedule_raw, list):
                             schedule_records = schedule_raw
                         elif isinstance(schedule_raw, dict):
-                            candidate = schedule_raw.get("stopTimes") or schedule_raw.get("results") or schedule_raw.get("data") or []
+                            candidate = schedule_raw.get("stopTimes") or schedule_raw.get("stop_times") or schedule_raw.get("results") or schedule_raw.get("data") or []
                             if isinstance(candidate, dict):
-                                candidate = candidate.get("stopTimes") or candidate.get("results") or []
+                                candidate = candidate.get("stopTimes") or candidate.get("stop_times") or candidate.get("results") or []
                             if not candidate:
                                 for value in schedule_raw.values():
                                     if isinstance(value, dict):
-                                        candidate = value.get("stopTimes") or value.get("results") or []
+                                        candidate = value.get("stopTimes") or value.get("stop_times") or value.get("results") or []
                                         if candidate:
                                             break
                             schedule_records = candidate if isinstance(candidate, list) else []
@@ -925,11 +925,11 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 ]
             def norm_id(value):
                 return str(value).strip().replace(".0", "") if value is not None else ""
-            route_schedule = [item for item in schedule_rows if norm_id(item.get("routeId")) == norm_id(route_id)]
-            trip_schedule = [item for item in route_schedule if norm_id(item.get("tripId")) == norm_id(trip_id)]
+            route_schedule = [item for item in schedule_rows if norm_id(item.get("routeId") or item.get("route_id")) == norm_id(route_id)]
+            trip_schedule = [item for item in route_schedule if norm_id(item.get("tripId") or item.get("trip_id")) == norm_id(trip_id)]
             if not trip_schedule:
-                trip_schedule = [item for item in schedule_rows if norm_id(item.get("tripId")) == norm_id(trip_id)]
-            route_stop_ids = {norm_id(row.get("stopId")) for row in matches}
+                trip_schedule = [item for item in schedule_rows if norm_id(item.get("tripId") or item.get("trip_id")) == norm_id(trip_id)]
+            route_stop_ids = {norm_id(row.get("stopId") or row.get("stop_id")) for row in matches}
             schedule_diagnostics["routeRows"] = len(route_schedule)
             if route_schedule:
                 schedule_diagnostics["sampleRows"] = [
@@ -940,21 +940,21 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             if vehicle_service:
                 service_rows = [
                     item for item in route_schedule
-                    if norm_id(item.get("busServiceName") or item.get("vehicleService")) == norm_id(vehicle_service)
+                    if norm_id(item.get("busServiceName") or item.get("bus_service_name") or item.get("vehicleService") or item.get("vehicle_service")) == norm_id(vehicle_service)
                 ]
                 schedule_diagnostics["serviceRows"] = len(service_rows)
                 if not trip_schedule and service_rows:
                     service_groups = {}
                     for item in service_rows:
-                        service_groups.setdefault(norm_id(item.get("tripId")), []).append(item)
+                        service_groups.setdefault(norm_id(item.get("tripId") or item.get("trip_id")), []).append(item)
                     ranked_service = sorted(
                         service_groups.values(),
-                        key=lambda group: len(route_stop_ids.intersection({norm_id(item.get("stopId")) for item in group})),
+                        key=lambda group: len(route_stop_ids.intersection({norm_id(item.get("stopId") or item.get("stop_id")) for item in group})),
                         reverse=True,
                     )
                     if ranked_service:
                         best_service = ranked_service[0]
-                        overlap = route_stop_ids.intersection({norm_id(item.get("stopId")) for item in best_service})
+                        overlap = route_stop_ids.intersection({norm_id(item.get("stopId") or item.get("stop_id")) for item in best_service})
                         if overlap or len(service_groups) == 1:
                             trip_schedule = best_service
                             schedule_match = "vehicleService+stopOverlap" if overlap else "vehicleService(uniqueTrip)"
@@ -963,11 +963,11 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             if not trip_schedule and route_schedule:
                 grouped = {}
                 for item in route_schedule:
-                    key = norm_id(item.get("tripId"))
+                    key = norm_id(item.get("tripId") or item.get("trip_id"))
                     grouped.setdefault(key, []).append(item)
                 ranked = sorted(
                     grouped.values(),
-                    key=lambda group: len(route_stop_ids.intersection({norm_id(item.get("stopId")) for item in group})),
+                    key=lambda group: len(route_stop_ids.intersection({norm_id(item.get("stopId") or item.get("stop_id")) for item in group})),
                     reverse=True,
                 )
                 if ranked:
@@ -976,15 +976,15 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                     if overlap:
                         trip_schedule = best
                         schedule_match = "bestStopSequence"
-            schedule_diagnostics["tripIds"] = sorted({norm_id(item.get("tripId")) for item in route_schedule if norm_id(item.get("tripId"))})[:8]
+            schedule_diagnostics["tripIds"] = sorted({norm_id(item.get("tripId") or item.get("trip_id")) for item in route_schedule if norm_id(item.get("tripId") or item.get("trip_id"))})[:8]
             for item in trip_schedule:
-                sid = norm_id(item.get("stopId"))
+                sid = norm_id(item.get("stopId") or item.get("stop_id"))
                 value = (item.get("departureTime") or item.get("arrivalTime") or
                          item.get("departure_time") or item.get("arrival_time") or
                          item.get("departure") or item.get("arrival") or item.get("time"))
                 if sid and value:
                     scheduled_by_stop[sid] = value
-                sequence = norm_id(item.get("stopSequence"))
+                sequence = norm_id(item.get("stopSequence") or item.get("stop_sequence"))
                 if sequence and value:
                     scheduled_by_sequence[sequence] = value
         except Exception as schedule_error:
@@ -999,7 +999,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 continue
             sid = str(row.get("stopId", ""))
             stop = stop_lookup.get(sid, {"stopId": sid, "name": "Przystanek", "code": "", "lat": None, "lon": None})
-            sequence_key = str(row.get("stopSequence", "")).strip().replace(".0", "")
+            sequence_key = str(row.get("stopSequence", row.get("stop_sequence", ""))).strip().replace(".0", "")
             time_value = scheduled_by_stop.get(str(sid).strip().replace(".0", "")) or scheduled_by_sequence.get(sequence_key)
             scheduled_time = None
             estimated_time = None
