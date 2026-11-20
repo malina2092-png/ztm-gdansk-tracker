@@ -367,7 +367,8 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   const lon=vehicle&&vehicle.lon!=null?vehicle.lon:'';
   const delay=vehicle&&vehicle.delay!=null?vehicle.delay:'';
   const service=vehicle&&vehicle.vehicleService!=null?vehicle.vehicleService:'';
-  const query='?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&delay='+encodeURIComponent(delay)+'&vehicle_service='+encodeURIComponent(service);
+  const startTime=vehicle&&vehicle.scheduledTripStartTime?vehicle.scheduledTripStartTime:'';
+  const query='?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&delay='+encodeURIComponent(delay)+'&vehicle_service='+encodeURIComponent(service)+'&scheduled_trip_start_time='+encodeURIComponent(startTime);
   const response=await fetch('/api/vehicle-route/'+encodeURIComponent(routeId)+'/'+encodeURIComponent(tripId)+query);
   const data=await response.json();
   if(String(selectedVehicleCode)!==String(vehicleCode))return;
@@ -797,7 +798,7 @@ async def get_stops():
 
 
 @app.get("/api/vehicle-route/{route_id}/{trip_id}")
-async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon: float = None, delay: float = None, vehicle_service: str = None):
+async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon: float = None, delay: float = None, vehicle_service: str = None, scheduled_trip_start_time: str = None):
     """Return the ordered passenger stops and timetable times for the exact live trip."""
     global _stops_in_trips_cache, _stops_in_trips_loaded_at, _stops_cache, _stops_loaded_at
     try:
@@ -943,21 +944,53 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                     if norm_id(item.get("busServiceName") or item.get("bus_service_name") or item.get("vehicleService") or item.get("vehicle_service")) == norm_id(vehicle_service)
                 ]
                 schedule_diagnostics["serviceRows"] = len(service_rows)
-                if not trip_schedule and service_rows:
+                if service_rows:
+                    # vehicleService identifies the vehicle's duty; "order" separates
+                    # individual runs within that duty. GPS scheduledTripStartTime
+                    # selects the exact run instead of mixing every run on the variant.
                     service_groups = {}
                     for item in service_rows:
-                        service_groups.setdefault(norm_id(item.get("tripId") or item.get("trip_id")), []).append(item)
-                    ranked_service = sorted(
-                        service_groups.values(),
-                        key=lambda group: len(route_stop_ids.intersection({norm_id(item.get("stopId") or item.get("stop_id")) for item in group})),
-                        reverse=True,
-                    )
-                    if ranked_service:
-                        best_service = ranked_service[0]
-                        overlap = route_stop_ids.intersection({norm_id(item.get("stopId") or item.get("stop_id")) for item in best_service})
-                        if overlap or len(service_groups) == 1:
-                            trip_schedule = best_service
-                            schedule_match = "vehicleService+stopOverlap" if overlap else "vehicleService(uniqueTrip)"
+                        service_groups.setdefault(norm_id(item.get("order")), []).append(item)
+                    if scheduled_trip_start_time and service_groups:
+                        try:
+                            gps_start = datetime.fromisoformat(str(scheduled_trip_start_time).replace("Z", "+00:00"))
+                            if gps_start.tzinfo is not None:
+                                gps_start = gps_start.astimezone(ZoneInfo("Europe/Warsaw"))
+                            gps_seconds = gps_start.hour * 3600 + gps_start.minute * 60 + gps_start.second
+
+                            def run_start_seconds(group):
+                                first = min(group, key=lambda item: int(item.get("stopSequence") or item.get("stop_sequence") or 0))
+                                raw_value = first.get("departureTime") or first.get("departure_time") or first.get("arrivalTime") or first.get("arrival_time")
+                                parsed = datetime.fromisoformat(str(raw_value).replace("Z", "+00:00"))
+                                return parsed.hour * 3600 + parsed.minute * 60 + parsed.second
+
+                            def start_distance(group):
+                                seconds = run_start_seconds(group)
+                                diff = abs(seconds - gps_seconds)
+                                return min(diff, abs(diff - 86400), abs(diff + 86400))
+
+                            best_group = min(service_groups.values(), key=start_distance)
+                            trip_schedule = best_group
+                            schedule_match = "vehicleService+scheduledTripStartTime"
+                        except (TypeError, ValueError, OverflowError):
+                            if not trip_schedule and len(service_groups) == 1:
+                                trip_schedule = next(iter(service_groups.values()))
+                                schedule_match = "vehicleService(uniqueOrder)"
+                    elif not trip_schedule and len(service_groups) == 1:
+                        trip_schedule = next(iter(service_groups.values()))
+                        schedule_match = "vehicleService(uniqueOrder)"
+                    elif not trip_schedule:
+                        ranked_service = sorted(
+                            service_groups.values(),
+                            key=lambda group: len(route_stop_ids.intersection({norm_id(item.get("stopId") or item.get("stop_id")) for item in group})),
+                            reverse=True,
+                        )
+                        if ranked_service:
+                            best_service = ranked_service[0]
+                            overlap = route_stop_ids.intersection({norm_id(item.get("stopId") or item.get("stop_id")) for item in best_service})
+                            if overlap:
+                                trip_schedule = best_service
+                                schedule_match = "vehicleService+stopOverlap"
             if trip_schedule and schedule_match == "none":
                 schedule_match = "tripId"
             if not trip_schedule and route_schedule:
