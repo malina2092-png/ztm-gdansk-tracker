@@ -187,6 +187,13 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
  #activeTable .tag,#lineResults .tag{padding:3px 5px;font-size:10px}
 }
 
+
+/* Final mobile sizing overrides */
+.vehicle-detail-overlay{padding:0;align-items:flex-end;justify-content:center}
+.vehicle-detail-card{width:100%;max-width:none;max-height:53dvh;background:#111;color:#eee;border:0;border-radius:20px 20px 0 0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}
+@media(min-width:850px){.vehicle-detail-overlay{padding:0;align-items:flex-end;justify-content:center}.vehicle-detail-card{width:min(100%,850px);max-height:55vh;border-radius:20px 20px 0 0}}
+@media(max-width:520px){.vehicle-detail-card{max-height:53dvh;width:100%;border-radius:20px 20px 0 0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}}
+
 </style>
 </head>
 <body class="menu-closed">
