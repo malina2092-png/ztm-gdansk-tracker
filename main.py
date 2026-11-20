@@ -221,6 +221,32 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .vehicle-detail-card{width:100%;max-width:100vw;overflow-x:hidden;overscroll-behavior-x:none;touch-action:pan-y}
 @media(max-width:520px){.vehicle-detail-card{width:100vw;max-width:100vw;min-width:0;overflow-x:hidden;touch-action:pan-y}}
 
+
+/* Motyw jasny/ciemny Transportie */
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0c0d0f;--surface:rgba(25,26,29,.96);--ink:#f1f2f4;--muted:#a0a4ad;--line:#303238;--blue:#70a7ff;--blue-soft:#202d40;--shadow:0 12px 34px rgba(0,0,0,.34)}
+:root[data-theme="dark"] body{background:#0c0d0f;color:var(--ink)}
+:root[data-theme="dark"] nav,:root[data-theme="dark"] .surface,:root[data-theme="dark"] .card,:root[data-theme="dark"] .settings-grid,:root[data-theme="dark"] .theme-setting{background:#191a1d!important;color:var(--ink);border-color:#303238!important}
+:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{background:#222429!important;color:#f1f2f4!important;border-color:#41444b!important}
+:root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:#9298a3}
+:root[data-theme="dark"] table,:root[data-theme="dark"] th,:root[data-theme="dark"] td{color:var(--ink);border-color:#35383f!important}
+:root[data-theme="dark"] th{background:#222429!important}
+:root[data-theme="dark"] .toolbar button,:root[data-theme="dark"] .secondary{background:#292c32;color:#f1f2f4;border-color:#41444b}
+:root[data-theme="dark"] nav button{color:#d7d9de}
+:root[data-theme="dark"] nav button.active{background:#263c32;color:#56d49a}
+:root[data-theme="dark"] .vehicle-popup,:root[data-theme="dark"] .leaflet-popup-content-wrapper,:root[data-theme="dark"] .leaflet-popup-tip{background:#202226;color:#f1f2f4}
+:root[data-theme="dark"] .leaflet-control-zoom a{background:#202226;color:#f1f2f4;border-color:#41444b}
+:root[data-theme="dark"] .vehicle-detail-card{background:#111!important;color:#eee!important}
+:root[data-theme="dark"] .vehicle-detail-card input,:root[data-theme="dark"] .vehicle-detail-card select{background:#222!important;color:#eee!important}
+.theme-setting{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.theme-setting h3{margin:0 0 5px;font-size:16px}
+.theme-options{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.theme-options button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:10px 14px;font-weight:700;cursor:pointer}
+.theme-options button.selected{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+#fleetDatabaseTable{margin-top:12px}
+#fleetDatabaseTable .table-wrap{overflow-x:auto}
+@media(max-width:520px){.theme-options button{flex:1 1 30%;padding:10px 7px;font-size:12px}}
+
 </style>
 </head>
 <body class="menu-closed">
@@ -239,6 +265,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  <button onclick="showSection('linia',this)">🔎 Pojazdy na linii</button>
  <button onclick="showSection('odjazdy',this)">🚏 Odjazdy z przystanku</button>
  <button onclick="showSection('ustawienia',this)">⚙️ Ustawienia</button>
+ <button onclick="showSection('baza',this)">🚍 Baza pojazdów ZTM</button>
  <button onclick="showSection('konto',this)">👤 Konto</button>
  <button id="adminNavButton" style="display:none" onclick="showSection('administracja',this)">🛡️ Administracja</button>
  <a class="nav-instagram" href="https://www.instagram.com/boruwkowlosa/" target="_blank" rel="noopener noreferrer"><svg class="instagram-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="url(#igGradient)" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="url(#igGradient)" stroke-width="2"/><circle cx="17.6" cy="6.6" r="1.25" fill="url(#igGradient)"/><defs><linearGradient id="igGradient" x1="3" y1="21" x2="21" y2="3" gradientUnits="userSpaceOnUse"><stop stop-color="#feda75"/><stop offset=".35" stop-color="#fa7e1e"/><stop offset=".68" stop-color="#d62976"/><stop offset="1" stop-color="#4f5bd5"/></linearGradient></defs></svg><span>@boruwkowlosa</span></a>
@@ -280,7 +307,11 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
   <label class="check"><input type="checkbox" id="showLine" checked onchange="saveLabelSettings()"> Numer linii</label>
   <label class="check"><input type="checkbox" id="showBrigade" onchange="saveLabelSettings()"> Numer brygady</label>
   <label class="check"><input type="checkbox" id="showFleet" checked onchange="saveLabelSettings()"> Numer taborowy</label>
- </div><p class="small-note">Widoczne będą wyłącznie dane potwierdzone w źródłach ZTM.</p><div class="small-note" id="mapLabelSummary">Etykiety: —</div><div class="small-note" id="dataStatus">Połączenie z danymi: oczekiwanie…</div><div class="small-note" id="lastUpdateSettings">Ostatnia aktualizacja: —</div><div class="small-note" id="vehicleCountSettings">Widoczne pojazdy: —</div></div>
+ </div><p class="small-note">Widoczne będą wyłącznie dane potwierdzone w źródłach ZTM.</p><div class="theme-setting"><h3>Wygląd aplikacji</h3><p class="small-note">Wybierz motyw Transportie.</p><div class="theme-options"><button type="button" id="themeLight" onclick="setTheme(\'light\')" aria-pressed="false">☀️ Jasny</button><button type="button" id="themeDark" onclick="setTheme(\'dark\')" aria-pressed="false">🌙 Ciemny</button><button type="button" id="themeSystem" onclick="setTheme(\'system\')" aria-pressed="false">⚙️ Systemowy</button></div></div><div class="small-note" id="mapLabelSummary">Etykiety: —</div><div class="small-note" id="dataStatus">Połączenie z danymi: oczekiwanie…</div><div class="small-note" id="lastUpdateSettings">Ostatnia aktualizacja: —</div><div class="small-note" id="vehicleCountSettings">Widoczne pojazdy: —</div></div>
+</section>
+<section id="baza">
+ <div class="section-head"><div><h2>Baza pojazdów ZTM</h2><div class="hint">Katalog pojazdów na podstawie danych źródłowych ZTM Gdańsk</div></div></div>
+ <div class="surface"><div class="toolbar"><input id="fleetDatabaseSearch" type="search" placeholder="Szukaj: numer taborowy, model, przewoźnik…" oninput="renderFleetDatabase()"><button class="primary" onclick="loadFleetDatabase(true)">Odśwież</button></div><div class="small-note" id="fleetDatabaseStatus">Pobieranie bazy pojazdów…</div><div id="fleetDatabaseTable"></div></div>
 </section>
 <section id="konto">
  <div class="section-head"><div><h2>Konto użytkownika</h2><div class="hint">Konto Transportie — bez adresu e-mail</div></div></div>
@@ -332,7 +363,14 @@ try{const saved=JSON.parse(localStorage.getItem('transportie-labels')||'null');i
 document.getElementById('showLine').checked=labelSettings.line;
 document.getElementById('showBrigade').checked=labelSettings.brigade;
 document.getElementById('showFleet').checked=labelSettings.fleet;
-function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(button)button.classList.add('active');if(window.innerWidth<=850)document.body.classList.add('menu-closed');if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),180);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();if(id==='konto')refreshAccount();if(id==='odjazdy'){if(!allStops.length)loadStops();searchStops();}}
+function getThemePreference(){try{return localStorage.getItem('transportie-theme')||'system';}catch(e){return 'system';}}
+function applyTheme(){const pref=getThemePreference(),dark=pref==='dark'||(pref==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=dark?'dark':'light';['light','dark','system'].forEach(name=>{const el=document.getElementById('theme'+name.charAt(0).toUpperCase()+name.slice(1));if(el){el.setAttribute('aria-pressed',String(pref===name));el.classList.toggle('selected',pref===name);}});}
+function setTheme(theme){if(!['light','dark','system'].includes(theme))return;try{localStorage.setItem('transportie-theme',theme);}catch(e){}applyTheme();}
+if(window.matchMedia){const themeMedia=window.matchMedia('(prefers-color-scheme: dark)');if(themeMedia.addEventListener)themeMedia.addEventListener('change',()=>{if(getThemePreference()==='system')applyTheme();});}
+applyTheme();
+let fleetDatabaseRows=[];
+async function loadFleetDatabase(force){const status=document.getElementById('fleetDatabaseStatus'),box=document.getElementById('fleetDatabaseTable');if(!status||!box)return;status.textContent='Pobieranie oficjalnej bazy pojazdów ZTM…';if(force)box.innerHTML='';try{const response=await fetch('/api/fleet',{cache:force?'no-store':'default'});const data=await response.json();if(!response.ok||data.error)throw new Error(data.error||'Błąd pobierania bazy');fleetDatabaseRows=Array.isArray(data.vehicles)?data.vehicles:[];status.textContent='Pojazdy w bazie: '+fleetDatabaseRows.length+' · Źródło: '+(data.source||'ZTM Gdańsk')+' · Aktualizacja: '+(data.lastUpdate||'brak informacji');renderFleetDatabase();}catch(error){status.textContent='Nie udało się pobrać bazy pojazdów: '+error.message;box.innerHTML='<div class="empty">Dane źródłowe są chwilowo niedostępne. Spróbuj ponownie później.</div>';}}
+function renderFleetDatabase(){const box=document.getElementById('fleetDatabaseTable');if(!box)return;const q=(document.getElementById('fleetDatabaseSearch')?.value||'').trim().toLowerCase();const rows=fleetDatabaseRows.filter(v=>Object.values(v).some(x=>x!=null&&String(x).toLowerCase().includes(q)));if(!rows.length){box.innerHTML='<div class="empty">Brak pojazdów pasujących do wyszukiwania.</div>';return;}const val=(v,keys)=>{for(const k of keys){if(v[k]!=null&&String(v[k]).trim()!=='')return String(v[k]);}return '—';};box.innerHTML='<div class="table-wrap"><table><thead><tr><th>Nr taborowy</th><th>Marka / model</th><th>Przewoźnik</th><th>Typ</th><th>Rok</th></tr></thead><tbody>'+rows.map(v=>'<tr><td><b>#'+safe(val(v,['vehicleCode','fleetNumber','fleet','number']))+'</b></td><td>'+safe([val(v,['brand','make','manufacturer']) ,val(v,['model','vehicleModel'])].filter(x=>x!=='—').join(' ')||'—')+'</td><td>'+safe(val(v,['carrier','carrirer','operator']))+'</td><td>'+safe(val(v,['vehicleType','type','category']))+'</td><td>'+safe(val(v,['productionYear','year','manufactureYear']))+'</td></tr>').join('')+'</tbody></table></div>';}function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(button)button.classList.add('active');if(window.innerWidth<=850)document.body.classList.add('menu-closed');if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),180);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();if(id==='baza')loadFleetDatabase(false);if(id==='konto')refreshAccount();if(id==='odjazdy'){if(!allStops.length)loadStops();searchStops();}}
  window.showSection=showSection;
 function toggleMenu(){document.body.classList.toggle('menu-closed');if(map)setTimeout(()=>map.invalidateSize(),260);}
 function zoomMap(delta){if(map)map.setZoom(map.getZoom()+delta);}
@@ -564,6 +602,25 @@ updateVehicles();if(map)loadStops();refreshAccount();setInterval(updateVehicles,
 </html>
 """
 
+
+@app.get("/api/fleet")
+async def fleet():
+    global _vehicle_db, _vehicle_db_loaded_at
+    try:
+        if not _vehicle_db or time.time() - _vehicle_db_loaded_at > 3600:
+            headers = {"Accept": "application/json", "User-Agent": "Transportie/1.0 (ZTM Gdansk fleet database)"}
+            async with httpx.AsyncClient(timeout=httpx.Timeout(25.0, connect=10.0), follow_redirects=True, headers=headers) as client:
+                response = await client.get(VEHICLE_DB_URL)
+                response.raise_for_status()
+                data = response.json()
+            rows = data.get("results", []) if isinstance(data, dict) else data if isinstance(data, list) else []
+            if not isinstance(rows, list):
+                raise ValueError("Nieprawidłowy format bazy pojazdów.")
+            _vehicle_db = {str(item.get("vehicleCode")): item for item in rows if isinstance(item, dict) and item.get("vehicleCode") is not None}
+            _vehicle_db_loaded_at = time.time()
+        return {"vehicles": list(_vehicle_db.values()), "count": len(_vehicle_db), "lastUpdate": datetime.fromtimestamp(_vehicle_db_loaded_at, ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d %H:%M:%S"), "source": "Baza pojazdów ZTM Gdańsk"}
+    except Exception as error:
+        return JSONResponse(status_code=502, content={"vehicles": [], "count": 0, "error": "Nie udało się pobrać bazy pojazdów ZTM: " + str(error)[:220]})
 
 @app.get("/api/live")
 async def live():
