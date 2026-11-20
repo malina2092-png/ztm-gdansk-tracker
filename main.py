@@ -455,7 +455,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
    const stopLabel=(stop.name||'Przystanek')+(stop.code&&!String(stop.name||'').endsWith(String(stop.code))?' '+stop.code:'');
    return '<div class="course-stop'+passed+'" data-stop-index="'+index+'"><span class="course-stop-marker" aria-hidden="true"></span><span class="course-stop-name"><b>'+safe(stopLabel)+'</b></span>'+time+'</div>';
   }).join('');
-  const brigadeBox=document.getElementById('vehicleBrigadeStops');if(brigadeBox)brigadeBox.innerHTML=box.innerHTML;
+
   if(currentIndex>0){
    window.setTimeout(()=>{
     if(String(selectedVehicleCode)!==String(vehicleCode))return;
