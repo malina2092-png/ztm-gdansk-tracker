@@ -379,7 +379,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   }
   const currentIndex=Number(data.currentIndex||0);
   box.innerHTML=stops.map((stop,index)=>{
-   const time=stop.estimatedTime&&stop.scheduledTime
+   const time=stop.estimatedTime&&stop.scheduledTime&&stop.estimatedTime!==stop.scheduledTime
     ?'<span class="course-stop-time"><s>'+safe(stop.scheduledTime)+'</s><strong>'+safe(stop.estimatedTime)+'</strong></span>'
     :'<span class="course-stop-time">'+safe(stop.estimatedTime||stop.scheduledTime||'—')+'</span>';
    const passed=index<currentIndex?' passed':'';
