@@ -427,6 +427,9 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
    return;
   }
   const currentIndex=Number(data.currentIndex||0);
+  const routePoints=stops.filter(stop=>Number.isFinite(Number(stop.lat))&&Number.isFinite(Number(stop.lon))).map(stop=>[Number(stop.lat),Number(stop.lon)]);
+  if(vehicleRoutePolyline&&map){map.removeLayer(vehicleRoutePolyline);vehicleRoutePolyline=null;}
+  if(map&&routePoints.length>1){vehicleRoutePolyline=L.polyline(routePoints,{color:'#00a56a',weight:5,opacity:.92,lineCap:'round',lineJoin:'round'}).addTo(map);}
   box.innerHTML=stops.map((stop,index)=>{
    const time=stop.estimatedTime&&stop.scheduledTime&&stop.estimatedTime!==stop.scheduledTime
     ?'<span class="course-stop-time"><s>'+safe(stop.scheduledTime)+'</s><strong>'+safe(stop.estimatedTime)+'</strong></span>'
@@ -448,11 +451,12 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
  }
 }
 let vehicleRouteStopsTimer=null;
-function closeVehicleDetails(){const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open');selectedVehicleCode=null;if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}}
+function closeVehicleDetails(){if(vehicleRoutePolyline&&map){map.removeLayer(vehicleRoutePolyline);vehicleRoutePolyline=null;}const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open');selectedVehicleCode=null;if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}}
 function selectVehicleTab(tab,button){const root=document.getElementById('vehicleDetailContent');if(!root)return;root.querySelectorAll('[data-vehicle-tab]').forEach(x=>x.classList.toggle('active',x===button));root.querySelectorAll('[data-vehicle-panel]').forEach(x=>x.classList.toggle('active',x.getAttribute('data-vehicle-panel')===tab));}
 window.selectVehicleTab=selectVehicleTab;
 window.openVehicleDetails=openVehicleDetails;window.closeVehicleDetails=closeVehicleDetails;
 let selectedVehicleCode=null;
+let vehicleRoutePolyline=null;
 function refreshTooltips(){vehicles.forEach(v=>{const id=String(v.vehicleCode||'');if(markers[id]){const icon=vehicleIcon(v),html=icon.options&&icon.options.html||'';if(markers[id]._transportieIconHtml!==html){markers[id].setIcon(icon);markers[id]._transportieIconHtml=html;}}});const zoom=map?map.getZoom():12,bounds=map?map.getBounds():null;Object.values(stopMarkers).forEach(marker=>{if(zoom>=15&&bounds&&bounds.contains(marker.getLatLng())){marker.openTooltip&&marker.openTooltip();}else{marker.closeTooltip&&marker.closeTooltip();}});}
 function searchStops(){const results=document.getElementById('stopSearchResults');if(!results)return;const q=(document.getElementById('stopSearch')?.value||'').trim().toLowerCase();const matches=allStops.filter(s=>String(s.stopName||'').toLowerCase().includes(q)).slice(0,40);results.innerHTML=matches.length?matches.map(s=>'<button type="button" data-stop-select="'+safe(s.stopId)+'" data-stop-name="'+safe(s.stopName)+'">🚏 '+safe(s.stopName)+'</button>').join(''):'<div class="empty">Nie znaleziono przystanku.</div>';}
 const mapSearchInput=document.getElementById("mapVehicleSearch");if(mapSearchInput){mapSearchInput.addEventListener("focus",()=>document.body.classList.add("map-search-active"));mapSearchInput.addEventListener("blur",()=>{if(!mapSearchInput.value.trim())document.body.classList.remove("map-search-active");});}
