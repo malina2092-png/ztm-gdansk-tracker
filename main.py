@@ -373,24 +373,8 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   if(String(selectedVehicleCode)!==String(vehicleCode))return;
   if(!response.ok)throw new Error(data.error||'Błąd pobierania rozkładu');
   const stops=Array.isArray(data.stops)?data.stops:[];
-  const diag=data.diagnostics||{};
-  const diagnostic='<details class="course-diagnostics"'+(Number(data.timesFound||0)===0?' open':'')+'><summary>Diagnostyka godzin</summary><div class="course-diagnostics-body">'+
-   '<div>GPS routeId / tripId: <b>'+safe(data.routeId||'—')+' / '+safe(data.tripId||'—')+'</b></div>'+
-   '<div>Data rozkładu: <b>'+safe(diag.date||'—')+'</b></div>'+
-   '<div>Przystanki wariantu GPS: <b>'+safe(diag.tripStops??'—')+'</b></div>'+
-   '<div>Wiersze pobrane z rozkładu: <b>'+safe(data.scheduleRows??'—')+'</b></div>'+
-   '<div>Wiersze dla routeId: <b>'+safe(diag.routeRows??'—')+'</b></div>'+
-   '<div>Wiersze dla tripId: <b>'+safe(diag.tripRows??'—')+'</b></div>'+
-   '<div>Wiersze dla vehicleService: <b>'+safe(diag.serviceRows??'—')+'</b></div>'+
-   '<div>Metoda dopasowania: <b>'+safe(data.scheduleMatch||'brak')+'</b></div>'+
-   '<div>Godziny dopasowane do przystanków: <b>'+safe(data.timesFound??0)+'</b></div>'+
-   '<div>Identyfikatory kursów: <b>'+safe((diag.tripIds||[]).join(', ')||'brak')+'</b></div>'+
-   '<div>Pola rekordu ZTM: <b>'+safe((diag.sampleKeys||[]).join(', ')||'brak')+'</b></div>'+
-   '<div>Przykładowe rekordy ZTM: <pre style="white-space:pre-wrap;max-height:180px;overflow:auto;font-size:10px">'+safe(JSON.stringify(diag.sampleRows||[],null,2))+'</pre></div>'+
-   (diag.error?'<div class="course-diagnostics-error">Błąd rozkładu: '+safe(diag.error)+'</div>':'')+
-   '</div></details>';
   if(!stops.length){
-   box.innerHTML='<div class="vehicle-detail-empty">ZTM nie zwrócił przystanków dla tego wariantu kursu.</div>'+diagnostic;
+   box.innerHTML='<div class="vehicle-detail-empty">ZTM nie zwrócił przystanków dla tego wariantu kursu.</div>';
    return;
   }
   const currentIndex=Number(data.currentIndex||0);
@@ -401,7 +385,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
    const passed=index<currentIndex?' passed':'';
    const stopLabel=(stop.name||'Przystanek')+(stop.code&&!String(stop.name||'').endsWith(String(stop.code))?' '+stop.code:'');
    return '<div class="course-stop'+passed+'" data-stop-index="'+index+'"><span class="course-stop-marker" aria-hidden="true"></span><span class="course-stop-name"><b>'+safe(stopLabel)+'</b></span>'+time+'</div>';
-  }).join('')+diagnostic;
+  }).join('');
   if(currentIndex>0){
    window.setTimeout(()=>{
     if(String(selectedVehicleCode)!==String(vehicleCode))return;
@@ -410,7 +394,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
   }
  }catch(error){
   if(String(selectedVehicleCode)!==String(vehicleCode))return;
-  box.innerHTML='<div class="vehicle-detail-empty">'+safe(error.message||'Nie udało się pobrać listy przystanków.')+'</div><div class="course-diagnostics-error">Diagnostyka: błąd połączenia z endpointem trasy.</div>';
+  box.innerHTML='<div class="vehicle-detail-empty">'+safe(error.message||'Nie udało się pobrać listy przystanków.')+'</div>';
  }
 }
 let vehicleRouteStopsTimer=null;
@@ -884,6 +868,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
 
         # Match timetable to the live vehicle, tolerating different tripId formats.
         scheduled_by_stop = {}
+        scheduled_by_sequence = {}
         schedule_row_count = 0
         schedule_match = "none"
         schedule_diagnostics = {
@@ -994,11 +979,17 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             schedule_diagnostics["tripIds"] = sorted({norm_id(item.get("tripId")) for item in route_schedule if norm_id(item.get("tripId"))})[:8]
             for item in trip_schedule:
                 sid = norm_id(item.get("stopId"))
-                value = item.get("departureTime") or item.get("arrivalTime")
+                value = (item.get("departureTime") or item.get("arrivalTime") or
+                         item.get("departure_time") or item.get("arrival_time") or
+                         item.get("departure") or item.get("arrival") or item.get("time"))
                 if sid and value:
                     scheduled_by_stop[sid] = value
+                sequence = norm_id(item.get("stopSequence"))
+                if sequence and value:
+                    scheduled_by_sequence[sequence] = value
         except Exception as schedule_error:
             scheduled_by_stop = {}
+            scheduled_by_sequence = {}
             schedule_match = "error: " + str(schedule_error)[:120]
             schedule_diagnostics["error"] = str(schedule_error)[:220]
 
@@ -1008,7 +999,8 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 continue
             sid = str(row.get("stopId", ""))
             stop = stop_lookup.get(sid, {"stopId": sid, "name": "Przystanek", "code": "", "lat": None, "lon": None})
-            time_value = scheduled_by_stop.get(str(sid).strip().replace(".0", ""))
+            sequence_key = str(row.get("stopSequence", "")).strip().replace(".0", "")
+            time_value = scheduled_by_stop.get(str(sid).strip().replace(".0", "")) or scheduled_by_sequence.get(sequence_key)
             scheduled_time = None
             estimated_time = None
             if time_value:
