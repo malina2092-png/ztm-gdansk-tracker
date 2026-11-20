@@ -387,7 +387,7 @@ function openVehicleDetails(v){
  content.innerHTML=
   '<div class="vehicle-detail-head"><div class="vehicle-detail-line">'+safe(line||'—')+'</div><div><div class="vehicle-detail-type">'+(isTram(v)?'🚊 Tramwaj':'🚌 Autobus')+' · POJAZD LIVE</div><div class="vehicle-detail-title">'+safe(direction||'Kurs w trakcie')+'</div><span class="vehicle-live-status">● Pozycja GPS na żywo</span></div></div>'+
   '<div class="vehicle-detail-meta"><strong>#'+safe(fleet||'—')+'</strong><span>·</span><span>Brygada '+safe(brigade)+'</span><span>·</span><span>'+safe(speed==null?'—':String(speed)+' km/h')+'</span><span>·</span><span>'+safe(delay)+'</span></div>'+
-  '<div class="vehicle-detail-tabs"><button type="button" class="active" data-vehicle-tab="route" onclick="selectVehicleTab(\'route\',this)">TRASA</button><button type="button" data-vehicle-tab="vehicle" onclick="selectVehicleTab(\'vehicle\',this)">POJAZD</button><button type="button" data-vehicle-tab="brigade" onclick="selectVehicleTab(\'brigade\',this)">ROZKŁAD BRYGADOWY</button></div>'+
+  '<div class="vehicle-detail-tabs"><button type="button" class="active" data-vehicle-tab="route">TRASA</button><button type="button" data-vehicle-tab="vehicle">POJAZD</button><button type="button" data-vehicle-tab="brigade">ROZKŁAD BRYGADOWY</button></div>'+
   '<div class="vehicle-tab-panel active" data-vehicle-panel="route">'+routeStops+'</div>'+
   '<div class="vehicle-tab-panel" data-vehicle-panel="vehicle">'+vehicleTab+'</div>'+
   '<div class="vehicle-tab-panel" data-vehicle-panel="brigade">'+brigadeTab+'</div>';
