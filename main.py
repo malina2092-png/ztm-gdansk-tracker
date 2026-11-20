@@ -1182,6 +1182,125 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
             content={"stops": [], "count": 0, "error": "Nie udało się pobrać przystanków kursu: " + str(error)[:220]},
         )
 
+@app.get("/api/vehicle-duty/{route_id}/{vehicle_service}")
+async def get_vehicle_duty(route_id: str, vehicle_service: str):
+    """Return all trips and passenger stop times for one ZTM vehicle duty today."""
+    global _stops_cache, _stops_loaded_at, _stop_times_cache
+    try:
+        today = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
+        cache_key = today + ":" + str(route_id)
+        cached = _stop_times_cache.get(cache_key)
+        async with httpx.AsyncClient(timeout=40, follow_redirects=True) as client:
+            if not _stops_cache or time.time() - _stops_loaded_at > 86400:
+                stop_response = await client.get(STOPS_URL)
+                stop_response.raise_for_status()
+                raw_stops = stop_response.json()
+                stop_records = raw_stops if isinstance(raw_stops, list) else []
+                if isinstance(raw_stops, dict):
+                    stop_records = raw_stops.get("stops") or raw_stops.get("results") or raw_stops.get("data") or []
+                    if not stop_records:
+                        dated = [(key, value.get("stops")) for key, value in raw_stops.items()
+                                 if isinstance(value, dict) and isinstance(value.get("stops"), list)]
+                        if dated:
+                            stop_records = sorted(dated, key=lambda item: item[0])[-1][1]
+                _stops_cache = stop_records if isinstance(stop_records, list) else []
+                _stops_loaded_at = time.time()
+            if not cached or time.time() - cached.get("loaded_at", 0) > 1800:
+                schedule_response = await client.get("https://ckan2.multimediagdansk.pl/stopTimes",
+                                                     params={"date": today, "routeId": route_id})
+                schedule_response.raise_for_status()
+                raw_schedule = schedule_response.json()
+                schedule_records = raw_schedule if isinstance(raw_schedule, list) else []
+                if isinstance(raw_schedule, dict):
+                    schedule_records = (raw_schedule.get("stopTimes") or raw_schedule.get("stop_times") or
+                                        raw_schedule.get("results") or raw_schedule.get("data") or [])
+                    if isinstance(schedule_records, dict):
+                        schedule_records = (schedule_records.get("stopTimes") or
+                                            schedule_records.get("stop_times") or
+                                            schedule_records.get("results") or [])
+                    if not schedule_records:
+                        for value in raw_schedule.values():
+                            if isinstance(value, dict):
+                                schedule_records = (value.get("stopTimes") or value.get("stop_times") or
+                                                    value.get("results") or [])
+                                if schedule_records:
+                                    break
+                cached = {"loaded_at": time.time(),
+                          "records": schedule_records if isinstance(schedule_records, list) else []}
+                _stop_times_cache[cache_key] = cached
+        def norm(value):
+            return str(value).strip().replace(".0", "") if value is not None else ""
+        wanted_service = norm(vehicle_service)
+        duty_rows = [row for row in cached.get("records", [])
+                     if isinstance(row, dict) and norm(row.get("busServiceName") or
+                        row.get("bus_service_name") or row.get("vehicleService") or
+                        row.get("vehicle_service")) == wanted_service]
+        if not duty_rows:
+            return {"date": today, "vehicleService": vehicle_service, "courses": [],
+                    "count": 0, "source": "ZTM stopTimes"}
+        stop_lookup = {}
+        for item in _stops_cache:
+            if not isinstance(item, dict):
+                continue
+            sid = item.get("stopId", item.get("stop_id", item.get("id")))
+            if sid is None:
+                continue
+            stop_lookup[norm(sid)] = {
+                "name": item.get("stopName") or item.get("stopDesc") or
+                        item.get("stop_name") or item.get("name") or "Przystanek",
+                "code": item.get("subName") or item.get("stopCode") or "",
+            }
+        grouped = {}
+        for row in duty_rows:
+            order = norm(row.get("order")) or norm(row.get("tripId") or row.get("trip_id"))
+            grouped.setdefault(order, []).append(row)
+        courses = []
+        for order, rows in grouped.items():
+            rows.sort(key=lambda item: int(item.get("stopSequence") or item.get("stop_sequence") or 0))
+            passenger_stops = []
+            for item in rows:
+                if item.get("passenger") is False or str(item.get("nonpassenger", "0")) == "1":
+                    continue
+                sid = norm(item.get("stopId") or item.get("stop_id"))
+                info = stop_lookup.get(sid, {})
+                raw_time = (item.get("departureTime") or item.get("departure_time") or
+                            item.get("arrivalTime") or item.get("arrival_time"))
+                try:
+                    parsed = datetime.fromisoformat(str(raw_time).replace("Z", "+00:00"))
+                    clock = parsed.strftime("%H:%M")
+                except (TypeError, ValueError):
+                    clock = str(raw_time)[11:16] if raw_time and len(str(raw_time)) >= 16 else "—"
+                passenger_stops.append({
+                    "stopId": sid,
+                    "name": info.get("name") or "Przystanek",
+                    "code": info.get("code") or "",
+                    "sequence": item.get("stopSequence") or item.get("stop_sequence"),
+                    "time": clock,
+                })
+            if passenger_stops:
+                courses.append({
+                    "order": order,
+                    "tripId": rows[0].get("tripId") or rows[0].get("trip_id"),
+                    "startTime": passenger_stops[0]["time"],
+                    "endTime": passenger_stops[-1]["time"],
+                    "headsign": passenger_stops[-1]["name"],
+                    "stops": passenger_stops,
+                })
+        def sort_course(course):
+            try:
+                order_value = int(course.get("order") or 0)
+            except (TypeError, ValueError):
+                order_value = 0
+            return (course.get("startTime") or "99:99", order_value)
+        courses.sort(key=sort_course)
+        return {"date": today, "vehicleService": vehicle_service, "courses": courses,
+                "count": len(courses), "source": "ZTM stopTimes + stops"}
+    except Exception as error:
+        return JSONResponse(status_code=502, content={
+            "courses": [],
+            "error": "Nie udało się pobrać rozkładu brygady ZTM: " + str(error)[:220],
+        })
+
 @app.get("/api/departures/{stop_id}")
 async def get_departures(stop_id: str):
     try:
