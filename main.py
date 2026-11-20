@@ -258,6 +258,50 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 #fleetDatabaseTable .table-wrap{overflow-x:auto}
 @media(max-width:520px){.theme-options button{flex:1 1 30%;padding:10px 7px;font-size:12px}}
 
+
+/* Pelny ciemny motyw — bez bialych powierzchni i komorek tabel */
+:root[data-theme="dark"] body{background:#0b0c0e!important;color:#f1f2f4!important}
+:root[data-theme="dark"] main,:root[data-theme="dark"] section:not(#mapa){background:#0b0c0e;color:#f1f2f4}
+:root[data-theme="dark"] .surface,:root[data-theme="dark"] .card,:root[data-theme="dark"] .table-wrap,:root[data-theme="dark"] .stat,:root[data-theme="dark"] .settings-grid,:root[data-theme="dark"] .theme-setting{background:#191a1d!important;color:#f1f2f4!important;border-color:#303238!important}
+:root[data-theme="dark"] table,:root[data-theme="dark"] thead,:root[data-theme="dark"] tbody,:root[data-theme="dark"] tr,:root[data-theme="dark"] td{background:#191a1d!important;color:#f1f2f4!important}
+:root[data-theme="dark"] th{background:#24262b!important;color:#c4c8d0!important}
+:root[data-theme="dark"] td{border-top:1px solid #35383f!important}
+:root[data-theme="dark"] tbody tr:hover,:root[data-theme="dark"] tbody tr:hover td{background:#25282e!important}
+:root[data-theme="dark"] .tag{background:#26384f!important;color:#a9caff!important}
+:root[data-theme="dark"] .check{background:#222429!important;color:#f1f2f4!important;border-color:#383b42!important}
+:root[data-theme="dark"] #mapVehicleSearchPanel{background:rgba(25,26,29,.97)!important;border-color:#383b42!important}
+:root[data-theme="dark"] .map-search-input-wrap,:root[data-theme="dark"] .map-search-input-wrap input{color:#f1f2f4!important}
+:root[data-theme="dark"] .map-search-input-wrap button{background:#30343b!important;color:#f1f2f4!important}
+:root[data-theme="dark"] #mapBrand{background:rgba(25,26,29,.95)!important;color:#f1f2f4!important;border-color:#383b42!important}
+:root[data-theme="dark"] #mapZoom,:root[data-theme="dark"] #mapZoom button{background:#202226!important;color:#f1f2f4!important;border-color:#41444b!important}
+:root[data-theme="dark"] #myLocation{background:#fff!important;color:#1677e8!important}
+:root[data-theme="dark"] .leaflet-popup-content-wrapper,:root[data-theme="dark"] .leaflet-popup-tip{background:#202226!important;color:#f1f2f4!important}
+:root[data-theme="dark"] .leaflet-control-zoom a{background:#202226!important;color:#f1f2f4!important;border-color:#41444b!important}
+:root[data-theme="dark"] .nav-brand{color:#f1f2f4;border-color:#383b42}
+:root[data-theme="dark"] .nav-brand small{color:#a0a4ad}
+:root[data-theme="dark"] .nav-instagram{border-color:#383b42}
+:root[data-theme="dark"] .live-pill{background:#173b2c;color:#7de0ae}
+:root[data-theme="dark"] .vehicle-label{background:#202226;color:#f1f2f4;border-color:#41444b}
+:root[data-theme="dark"] .vehicle-detail-card{background:#111!important;color:#eee!important}
+
+/* Mobilne menu na dole ekranu */
+@media(max-width:850px){
+  nav{position:fixed!important;z-index:5000!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;width:100%!important;height:calc(70px + env(safe-area-inset-bottom))!important;min-height:70px;max-height:90px;padding:6px 5px calc(6px + env(safe-area-inset-bottom))!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;gap:3px!important;overflow-x:auto!important;overflow-y:hidden!important;border:1px solid var(--line)!important;border-bottom:0!important;border-radius:16px 16px 0 0!important;background:rgba(255,255,255,.97)!important;box-shadow:0 -7px 26px rgba(0,0,0,.12)!important;backdrop-filter:blur(18px)}
+  nav .nav-brand,nav .nav-instagram{display:none!important}
+  nav button,nav a{display:flex!important;flex:1 0 72px!important;min-width:72px!important;width:auto!important;height:100%!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;gap:3px!important;padding:6px 4px!important;border-radius:10px!important;text-align:center!important;white-space:normal!important;line-height:1.12!important;font-size:10px!important;font-weight:700!important}
+  nav button.active{box-shadow:inset 0 2px var(--blue)!important}
+  body.menu-closed nav,body:not(.menu-closed) nav{transform:none!important;pointer-events:auto!important}
+  #menuToggle{display:none!important}
+  section:not(#mapa).active,body.menu-closed section:not(#mapa).active{margin-left:0!important;padding:78px 16px calc(100px + env(safe-area-inset-bottom))!important}
+  #myLocation{bottom:calc(84px + env(safe-area-inset-bottom))!important}
+  #mapa .map-side{bottom:calc(84px + env(safe-area-inset-bottom))}
+}
+@media(max-width:850px){
+  :root[data-theme="dark"] nav{background:rgba(20,21,24,.98)!important;border-color:#303238!important;box-shadow:0 -7px 26px rgba(0,0,0,.45)!important}
+  :root[data-theme="dark"] nav button{color:#c7cbd3!important;background:transparent!important}
+  :root[data-theme="dark"] nav button.active{background:#202d40!important;color:#8bb9ff!important}
+}
+
 </style>
 </head>
 <body class="menu-closed">
