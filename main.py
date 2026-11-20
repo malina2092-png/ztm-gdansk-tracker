@@ -391,6 +391,7 @@ function openVehicleDetails(v){
   '<div class="vehicle-tab-panel active" data-vehicle-panel="route">'+routeStops+'</div>'+
   '<div class="vehicle-tab-panel" data-vehicle-panel="vehicle">'+vehicleTab+'</div>'+
   '<div class="vehicle-tab-panel" data-vehicle-panel="brigade">'+brigadeTab+'</div>';
+ content.querySelectorAll('[data-vehicle-tab]').forEach(button=>button.addEventListener('click',()=>selectVehicleTab(button.dataset.vehicleTab,button)));
 overlay.classList.add('open');
  overlay.setAttribute('aria-hidden','false');
  document.body.classList.add('vehicle-detail-open');
