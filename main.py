@@ -119,6 +119,16 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 @media(min-width:850px){.vehicle-detail-overlay{align-items:flex-end;justify-content:center;padding:0}.vehicle-detail-card{width:min(100%,850px);max-height:55vh;border-radius:20px 20px 0 0}}
 @media(max-width:520px){.vehicle-detail-overlay{padding:0}.vehicle-detail-card{width:100%;max-height:53dvh;border-radius:20px 20px 0 0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}.vehicle-detail-close{top:8px;right:12px}.vehicle-detail-head{padding:2px 52px 10px 16px}}
 
+
+.vehicle-detail-meta{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:0 16px 10px;color:#bdbdbd;font-size:12px}
+.vehicle-detail-meta strong{color:#eee}
+.vehicle-detail-tabs{display:flex;gap:0;border-bottom:1px solid #292929;margin:0 0 8px;position:sticky;top:-12px;background:#111;z-index:3}
+.vehicle-detail-tabs button{flex:1;min-width:0;padding:13px 4px 11px;border:0;border-bottom:3px solid transparent;background:transparent;color:#888;font-size:clamp(10px,2.7vw,14px);font-weight:750;white-space:nowrap;cursor:pointer}
+.vehicle-detail-tabs button.active{color:#00a85a;border-bottom-color:#00a85a}
+.vehicle-tab-panel{display:none;padding:0 16px 12px}
+.vehicle-tab-panel.active{display:block}
+.vehicle-brigade-note{padding:12px;border:1px solid #303030;border-radius:10px;background:#191919;color:#bbb;font-size:12px;line-height:1.5;margin-bottom:9px}
+
 @media(max-width:520px){#mapVehicleSearchPanel{top:74px;left:19px;right:19px;transform:none;width:auto;padding:6px;border-radius:12px}.map-search-input-wrap input{font-size:13px}.map-search-input-wrap{gap:7px}
  #mapZoom{top:154px}#myLocation{right:12px;left:auto;top:auto;bottom:12px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;font-size:0}#myLocation .loc-icon{width:29px;height:29px;font-size:21px}#locationStatus{right:12px;left:auto;bottom:62px;max-width:calc(100vw - 30px);text-align:center}
  header{top:10px;right:8px}
@@ -418,6 +428,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
    const stopLabel=(stop.name||'Przystanek')+(stop.code&&!String(stop.name||'').endsWith(String(stop.code))?' '+stop.code:'');
    return '<div class="course-stop'+passed+'" data-stop-index="'+index+'"><span class="course-stop-marker" aria-hidden="true"></span><span class="course-stop-name"><b>'+safe(stopLabel)+'</b></span>'+time+'</div>';
   }).join('');
+  const brigadeBox=document.getElementById('vehicleBrigadeStops');if(brigadeBox)brigadeBox.innerHTML=box.innerHTML;
   if(currentIndex>0){
    window.setTimeout(()=>{
     if(String(selectedVehicleCode)!==String(vehicleCode))return;
