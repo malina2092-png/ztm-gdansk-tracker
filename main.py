@@ -194,6 +194,21 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 @media(min-width:850px){.vehicle-detail-overlay{padding:0;align-items:flex-end;justify-content:center}.vehicle-detail-card{width:min(100%,850px);max-height:55vh;border-radius:20px 20px 0 0}}
 @media(max-width:520px){.vehicle-detail-card{max-height:53dvh;width:100%;border-radius:20px 20px 0 0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}}
 
+
+/* Prostokątna karta pojazdu */
+.vehicle-detail-overlay{padding:0;align-items:flex-end;justify-content:center}
+.vehicle-detail-card{width:100%;max-width:850px;height:58dvh;max-height:72dvh;min-height:360px;border-radius:0;background:#111;color:#eee;border:0;overflow-y:auto;padding:12px 0 calc(16px + env(safe-area-inset-bottom))}
+.vehicle-detail-line{border-radius:3px}
+.vehicle-duty-courses{display:grid;gap:12px;padding:4px 0 12px}
+.vehicle-duty-course{border:1px solid #303030;background:#191919;padding:11px 12px;border-radius:3px}
+.vehicle-duty-course-head{display:flex;justify-content:space-between;gap:10px;align-items:center;color:#eee;font-weight:800;font-size:13px;padding-bottom:8px;border-bottom:1px solid #303030}
+.vehicle-duty-course-head small{color:#9ca3af;font-weight:600;white-space:nowrap}
+.vehicle-duty-stop{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:7px 0;border-bottom:1px solid #292929;color:#ddd;font-size:12px}
+.vehicle-duty-stop:last-child{border-bottom:0}
+.vehicle-duty-stop time{color:#c8f7dc;font-weight:800;font-variant-numeric:tabular-nums}
+.vehicle-duty-stop small{color:#8d969f;margin-left:5px}
+@media(min-width:850px){.vehicle-detail-card{height:62vh;max-height:75vh;width:min(850px,calc(100vw - 300px));border-radius:0}}
+@media(max-width:520px){.vehicle-detail-card{height:58dvh;max-height:72dvh;min-height:350px;width:100%;border-radius:0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}}
 </style>
 </head>
 <body class="menu-closed">
@@ -383,10 +398,10 @@ function openVehicleDetails(v){
  }).join('');
  const technical=technicalRows?'<div class="vehicle-detail-section"><h3>Dane techniczne</h3><div class="vehicle-detail-grid">'+technicalRows+'</div></div>':'';
   const vehicleTab='<div class="vehicle-detail-section"><h3>Informacje o pojeździe</h3><div class="vehicle-detail-grid">'+(fields||'<div class="vehicle-detail-empty">Brak danych pojazdu.</div>')+'</div></div>'+technical;
- const brigadeTab='<div class="vehicle-detail-section"><h3>Rozkład brygadowy</h3><div class="vehicle-brigade-note">Godziny przystanków aktualnego kursu brygady <b>'+safe(brigade)+'</b>. Pełny rozkład całodziennej pracy brygady wymaga osobnych danych ZTM.</div><div id="vehicleBrigadeStops" class="vehicle-detail-stops"><div class="vehicle-detail-empty">Pobieranie godzin z rozkładu ZTM…</div></div></div>';
+ const brigadeTab='<div class="vehicle-detail-section"><h3>Rozkład brygadowy ZTM</h3><div class="vehicle-brigade-note">Brygada <b>'+safe(brigade)+'</b> · zadanie '+safe(get(v,['vehicleService'])||'—')+' · rozkład na dziś z danych ZTM.</div><div id="vehicleBrigadeCourses" class="vehicle-duty-courses"><div class="vehicle-detail-empty">Pobieranie wszystkich kursów brygady z ZTM…</div></div></div>';
  content.innerHTML=
   '<div class="vehicle-detail-head"><div class="vehicle-detail-line">'+safe(line||'—')+'</div><div><div class="vehicle-detail-type">'+(isTram(v)?'🚊 Tramwaj':'🚌 Autobus')+' · POJAZD LIVE</div><div class="vehicle-detail-title">'+safe(direction||'Kurs w trakcie')+'</div><span class="vehicle-live-status">● Pozycja GPS na żywo</span></div></div>'+
-  '<div class="vehicle-detail-meta"><strong>#'+safe(fleet||'—')+'</strong><span>·</span><span>Brygada '+safe(brigade)+'</span><span>·</span><span>'+safe(speed==null?'—':String(speed)+' km/h')+'</span><span>·</span><span>'+safe(delay)+'</span></div>'+
+  '<div class="vehicle-detail-meta"><strong>#'+safe(fleet||'—')+'</strong><span>·</span><span>Brygada '+safe(brigade)+'</span><span>·</span><span>'+safe(speed==null?'—':String(speed)+' km/h')+'</span><span>·</span><span>'+safe(delay)+'</span><span>·</span><span>GPS ZTM: '+safe(formatZtmTimestamp(get(v,['generated','dataGenerated','DataGenerated']))||'—')+'</span></div>'++
   '<div class="vehicle-detail-tabs"><button type="button" class="active" data-vehicle-tab="route">TRASA</button><button type="button" data-vehicle-tab="vehicle">POJAZD</button><button type="button" data-vehicle-tab="brigade">ROZKŁAD BRYGADOWY</button></div>'+
   '<div class="vehicle-tab-panel active" data-vehicle-panel="route">'+routeStops+'</div>'+
   '<div class="vehicle-tab-panel" data-vehicle-panel="vehicle">'+vehicleTab+'</div>'+
@@ -398,6 +413,7 @@ overlay.classList.add('open');
  selectedVehicleCode=String(v.vehicleCode||'');
  if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}
  loadVehicleRouteStops(routeId,tripId,selectedVehicleCode,v);
+ loadVehicleDuty(routeId,get(v,['vehicleService']));
  vehicleRouteStopsTimer=setInterval(()=>{
   if(String(selectedVehicleCode)!==String(v.vehicleCode||''))return;
   const latest=Array.isArray(vehicles)?vehicles.find(item=>String(item.vehicleCode||'')===String(v.vehicleCode||'')):null;
@@ -453,6 +469,18 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
 }
 let vehicleRouteStopsTimer=null;
 function closeVehicleDetails(){if(vehicleRoutePolyline&&map){map.removeLayer(vehicleRoutePolyline);vehicleRoutePolyline=null;}const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open');selectedVehicleCode=null;if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}}
+function formatZtmTimestamp(value){if(!value)return '';const d=new Date(value);return Number.isNaN(d.getTime())?String(value):d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+async function loadVehicleDuty(routeId,service){
+ const box=document.getElementById('vehicleBrigadeCourses');if(!box)return;
+ if(routeId==null||!service){box.innerHTML='<div class="vehicle-detail-empty">GPS nie przekazał identyfikatora linii lub zadania brygady.</div>';return;}
+ try{
+  const response=await fetch('/api/vehicle-duty/'+encodeURIComponent(routeId)+'/'+encodeURIComponent(service),{cache:'no-store'});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Nie udało się pobrać rozkładu brygady.');
+  const courses=Array.isArray(data.courses)?data.courses:[];
+  if(!courses.length){box.innerHTML='<div class="vehicle-detail-empty">ZTM nie udostępnił kursów tej brygady na dzisiejszy dzień.</div>';return;}
+  box.innerHTML=courses.map(course=>'<article class="vehicle-duty-course"><div class="vehicle-duty-course-head"><span>Kurs '+safe(course.order||'—')+'</span><small>'+safe(course.startTime||'—')+' – '+safe(course.endTime||'—')+'</small></div>'+(course.stops||[]).map(stop=>'<div class="vehicle-duty-stop"><span>'+safe(stop.name||'Przystanek')+(stop.code?' <small>'+safe(stop.code)+'</small>':'')+'</span><time>'+safe(stop.time||'—')+'</time></div>').join('')+'</article>').join('');
+ }catch(error){box.innerHTML='<div class="vehicle-detail-empty">'+safe(error.message||'Błąd pobierania danych ZTM.')+'</div>';}
+}
 function selectVehicleTab(tab,button){const root=document.getElementById('vehicleDetailContent');if(!root)return;root.querySelectorAll('[data-vehicle-tab]').forEach(x=>x.classList.toggle('active',x===button));root.querySelectorAll('[data-vehicle-panel]').forEach(x=>x.classList.toggle('active',x.getAttribute('data-vehicle-panel')===tab));}
 window.selectVehicleTab=selectVehicleTab;
 window.openVehicleDetails=openVehicleDetails;window.closeVehicleDetails=closeVehicleDetails;
