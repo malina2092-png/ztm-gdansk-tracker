@@ -228,6 +228,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 :root[data-theme="dark"] body{background:#0c0d0f;color:var(--ink)}
 :root[data-theme="dark"] .leaflet-tile{filter:brightness(.72) invert(.86) hue-rotate(180deg) saturate(.7) contrast(.92)}
 :root[data-theme="dark"] nav,:root[data-theme="dark"] .surface,:root[data-theme="dark"] .card,:root[data-theme="dark"] .settings-grid,:root[data-theme="dark"] .theme-setting{background:#191a1d!important;color:var(--ink);border-color:#303238!important}
+:root[data-theme="dark"] #mapa .map-side .surface{background:rgba(25,26,29,.94)!important;color:var(--ink)}
+:root[data-theme="dark"] .check{background:#222429;color:var(--ink);border-color:#383b42}
+:root[data-theme="dark"] .table-wrap{background:#191a1d;border-color:#383b42}
+:root[data-theme="dark"] .primary{color:#fff}
+:root[data-theme="dark"] .section-head h2{color:var(--ink)}
+:root[data-theme="dark"] .empty{color:#a0a4ad}
+:root[data-theme="dark"] .departure-row,:root[data-theme="dark"] .course-stop{border-color:#34373e}
+:root[data-theme="dark"] .departure-fleet{background:#26384f;color:#a9caff}
+:root[data-theme="dark"] #menuToggle{background:#202226;color:#f1f2f4;border:1px solid #41444b}
+
 :root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{background:#222429!important;color:#f1f2f4!important;border-color:#41444b!important}
 :root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:#9298a3}
 :root[data-theme="dark"] table,:root[data-theme="dark"] th,:root[data-theme="dark"] td{color:var(--ink);border-color:#35383f!important}
