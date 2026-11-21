@@ -387,9 +387,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .leaflet-tooltip.stop-label .stop-platform{display:block!important;font-size:11px!important;font-weight:800!important}
 
 /* Czytelne, klikalne ikony przystanków — zielony znacznik z białym autobusem. */
-.leaflet-marker-icon.stop-marker{width:36px!important;height:36px!important;margin-left:-18px!important;margin-top:-18px!important;background:transparent!important;border:0!important;}
-.leaflet-marker-icon.stop-marker .stop-icon{display:grid!important;place-items:center!important;width:32px!important;height:32px!important;border-radius:50%!important;background:#15965b!important;border:2px solid #fff!important;color:#fff!important;box-shadow:0 2px 8px #0008!important;}
-.leaflet-marker-icon.stop-marker .stop-icon svg{display:block!important;width:19px!important;height:19px!important;}
+.leaflet-marker-icon.stop-marker{width:44px!important;height:44px!important;margin-left:-22px!important;margin-top:-22px!important;background:transparent!important;border:0!important;padding:0!important;overflow:visible!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;}
 .leaflet-tooltip.stop-label{z-index:1000!important;white-space:nowrap!important;}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#171b22;color:#f5f7fa;}
 .stop-popup{min-width:230px;color:#f5f7fa;}
@@ -547,8 +545,46 @@ function zoomMap(delta){if(map)map.setZoom(map.getZoom()+delta);}
 window.zoomMap=zoomMap;
 function locateUser(){const button=document.getElementById('myLocation');button.disabled=true;if(!navigator.geolocation){button.disabled=false;return;}navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude,lon=pos.coords.longitude;if(map){if(userLocationMarker)map.removeLayer(userLocationMarker);userLocationMarker=L.circleMarker([lat,lon],{radius:10,color:'#fff',weight:4,fillColor:'#1765d1',fillOpacity:1}).addTo(map).bindPopup('Twoja lokalizacja');map.setView([lat,lon],16);userLocationMarker.openPopup();}button.disabled=false;},()=>{button.disabled=false;},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});}
 function saveLabelSettings(){labelSettings={line:document.getElementById('showLine').checked,brigade:document.getElementById('showBrigade').checked,fleet:document.getElementById('showFleet').checked};localStorage.setItem('transportie-labels',JSON.stringify(labelSettings));const summary=document.getElementById('mapLabelSummary');if(summary)summary.textContent='Etykiety: '+([labelSettings.line?'Linia':null,labelSettings.brigade?'Brygada':null,labelSettings.fleet?'Tabor':null].filter(Boolean).join(' · ')||'wyłączone');refreshTooltips();}
-async function loadStops(){if(stopsLoading||!map||!window.L)return;stopsLoading=true;try{const response=await fetch('/api/stops',{cache:'no-store'});if(!response.ok)throw new Error('Nie udało się pobrać przystanków: HTTP '+response.status);const data=await response.json();allStops=Array.isArray(data.stops)?data.stops:[];console.info('[Przystanki] pobrano:',allStops.length,'źródło:',data.source||'ZTM');if(!allStops.length)throw new Error(data.error||'API zwróciło pustą listę przystanków');allStops.forEach(stop=>{const id=String(stop.stopId||stop.stop_id||''),lat=Number(stop.lat??stop.stopLat??stop.stop_lat),lon=Number(stop.lon??stop.stopLon??stop.stop_lon),name=stop.stopName||stop.stopDesc||stop.stop_name||'Przystanek',platform=String(stop.subName||stop.sub_name||stop.stopCode||stop.stop_code||stop.platform||'').trim();if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||lat<53.8||lat>54.8||lon<18||lon>19.2||stopMarkers[id])return;const marker=L.marker([lat,lon],{pane:'stopsPane',zIndexOffset:1000,keyboard:true,interactive:true,bubblingMouseEvents:false,icon:L.divIcon({className:'stop-marker',html:'<span class="stop-icon" aria-label="Przystanek"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>',iconSize:[36,36],iconAnchor:[18,18]})}).addTo(map);const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,17],className:'stop-label',opacity:1});marker.bindPopup('<div class="stop-popup"><b>'+safe(name)+'</b><div class="small-note">Pobieranie najbliższych odjazdów…</div></div>',{maxWidth:320});marker.on('popupopen',()=>loadStopDepartures(id,marker,name));stopMarkers[id]=marker;});if(!Object.keys(stopMarkers).length)throw new Error('Pobrano dane, ale nie utworzono żadnej ikony przystanku');refreshTooltips();console.info('[Przystanki] widoczne ikony:',Object.keys(stopMarkers).length);}catch(e){console.error('[Przystanki] błąd:',e);const results=document.getElementById('stopSearchResults');if(results)results.innerHTML='<div class="empty">Nie udało się pobrać przystanków ZTM: '+safe(e.message)+'</div>';}finally{stopsLoading=false;}}
-
+async function loadStops(){
+ if(stopsLoading||!map||!window.L)return;
+ stopsLoading=true;
+ try{
+  const response=await fetch('/api/stops',{cache:'no-store'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||'Nie udało się pobrać przystanków: HTTP '+response.status);
+  allStops=Array.isArray(data.stops)?data.stops:[];
+  console.info('[Przystanki] pobrano:',allStops.length,'źródło:',data.source||'ZTM');
+  if(!allStops.length)throw new Error(data.error||'API zwróciło pustą listę przystanków');
+  let created=0;
+  allStops.forEach(stop=>{
+   const id=String(stop.stopId??stop.stop_id??stop.id??'').trim();
+   const lat=Number(stop.lat??stop.stopLat??stop.stop_lat??stop.latitude);
+   const lon=Number(stop.lon??stop.stopLon??stop.stop_lon??stop.longitude);
+   const name=stop.stopName||stop.stopDesc||stop.stop_name||stop.name||'Przystanek';
+   const platform=String(stop.subName||stop.sub_name||stop.stopCode||stop.stop_code||stop.platform||'').trim();
+   if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||lat<53.8||lat>54.8||lon<18||lon>19.2||stopMarkers[id])return;
+   const iconHtml='<div aria-label="Przystanek autobusowy" role="img" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#07996d;border:3px solid #fff;color:#fff;box-shadow:0 2px 9px rgba(0,0,0,.75);"><svg viewBox="0 0 24 24" width="25" height="25" aria-hidden="true" style="display:block;flex:none;"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+   const marker=L.marker([lat,lon],{
+    pane:'markerPane',zIndexOffset:1200,keyboard:true,interactive:true,
+    icon:L.divIcon({className:'stop-marker',html:iconHtml,iconSize:[44,44],iconAnchor:[22,22]})
+   }).addTo(map);
+   const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);
+   marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,22],className:'stop-label',opacity:1});
+   marker.bindPopup('<div class="stop-popup"><b>'+safe(name)+'</b><div class="small-note">Pobieranie najbliższych odjazdów…</div></div>',{maxWidth:320});
+   marker.on('click',()=>{if(!marker.isPopupOpen())marker.openPopup();});
+   marker.on('popupopen',()=>loadStopDepartures(id,marker,name));
+   stopMarkers[id]=marker;
+   created++;
+  });
+  if(!created&&!Object.keys(stopMarkers).length)throw new Error('Dane przystanków pobrano, ale nie utworzono żadnego znacznika. Sprawdź współrzędne w API.');
+  refreshTooltips();
+  console.info('[Przystanki] utworzono klikalne ikony:',created,'łącznie:',Object.keys(stopMarkers).length);
+ }catch(e){
+  console.error('[Przystanki] błąd:',e);
+  const results=document.getElementById('stopSearchResults');
+  if(results)results.innerHTML='<div class="empty">Nie udało się pobrać przystanków ZTM: '+safe(e.message)+'</div>';
+ }finally{stopsLoading=false;}
+}
 function parseStopTime(value){if(!value)return null;const raw=String(value).trim();let date=new Date(raw);if(!isNaN(date.getTime()))return date;const match=raw.match(/(?:T|^)(\d{1,2}):(\d{2})(?::(\d{2}))?/);if(match){date=new Date();date.setHours(Number(match[1]),Number(match[2]),Number(match[3]||0),0);if(date.getTime()<Date.now()-60000)date.setDate(date.getDate()+1);return date;}return null;}
 function stopDepartureMarkup(d){const rawTime=d.estimatedTime||d.estimated_time||d.expectedTime||d.departureTime||d.arrivalTime||d.time||d.theoreticalTime||d.scheduledTime;const dt=parseStopTime(rawTime);const t=dt?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const delay=d.delayInSeconds??d.delay_in_seconds;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(delay==null?'':(delay>0?'+':'')+Math.round(delay/60)+' min');const line=d.routeShortName||d.route||d.routeId||d.route_id||'—';const direction=d.headsign||d.direction||d.destination||'kierunek nieznany';const fleet=d.vehicleCode??d.vehicleId??d.vehicleNumber??d.fleetNumber;return '<div class="departure-row"><span><b>'+safe(line)+'</b> · '+safe(direction)+(fleet!=null&&fleet!==''?'<button type="button" class="departure-fleet" data-departure-vehicle="'+safe(fleet)+'">#'+safe(fleet)+'</button>':'<small class="small-note">pojazd niepodany w danych</small>')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}
 async function loadStopDepartures(id,marker,name){try{const response=await fetch('/api/departures/'+encodeURIComponent(id),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'API odjazdów');const rows=Array.isArray(data.departures)?data.departures:[];const html=rows.length?rows.slice(0,15).map(stopDepartureMarkup).join(''):'<div class="empty">Brak najbliższych odjazdów w aktualnym źródle ZTM.</div>';marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Linia · kierunek · tabor · czas przyjazdu</div>'+html+'</div>');}catch(e){marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Nie udało się pobrać odjazdów: '+safe(e.message)+'</div></div>');}}
