@@ -362,7 +362,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  #mapa .map-side{display:none!important}
  body.mobile-menu-open #mapTools,body.mobile-menu-open #mapZoom,body.mobile-menu-open #myLocation{pointer-events:none;opacity:.35}
 }
-#mapTools{display:none!important}
+#mapTools{display:flex!important}\n#mapTools button{border:0!important}
 .vehicle-duty-source{color:#8eaaa0;font-size:11px;font-weight:700;padding:4px 0 9px}
 #odjazdy .departures-card{min-height:55vh}
 #odjazdy .stop-search-results button{width:100%;text-align:left;padding:11px 12px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font-size:14px}
@@ -371,6 +371,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 </head>
 <body class="menu-closed">
 <button id="menuToggle" onclick="toggleMenu()" aria-label="Otwórz lub zamknij menu">☰</button>\n
+<div id="mapTools" aria-label="Ulubione pojazdy na mapie"><button type="button" onclick="showSection('ulubione',document.querySelector('nav button[onclick*=ulubione]'))" aria-label="Ulubione pojazdy" title="Ulubione">★</button></div>
 <div id="mapZoom" aria-label="Przybliżenie mapy"><button type="button" onclick="zoomMap(1)" aria-label="Przybliż">+</button><button type="button" onclick="zoomMap(-1)" aria-label="Oddal">−</button></div>
 <button id="myLocation" onclick="locateUser()" aria-label="Pokaż moją lokalizację"><span class="loc-icon" aria-hidden="true"><svg viewBox="0 0 32 32" width="27" height="27" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="9" stroke="currentColor" stroke-width="2.2"/><circle cx="16" cy="16" r="3.2" fill="currentColor"/><path d="M16 2.5v6M16 23.5v6M2.5 16h6M23.5 16h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span></button>
 <header>
