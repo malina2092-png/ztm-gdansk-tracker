@@ -11,7 +11,8 @@ app = FastAPI(title="Transportie")
 
 GPS_URL = "https://ckan2.multimediagdansk.pl/gpsPositions?v=2"
 VEHICLE_DB_URL = "https://files.cloudgdansk.pl/d/otwarte-dane/ztm/baza-pojazdow.json?v=2"
-STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/d3e96eb6-25ad-4d6c-8651-b1eb39155945/download/stopsingdansk.json"
+STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json"
+STOPS_GDANSK_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/d3e96eb6-25ad-4d6c-8651-b1eb39155945/download/stopsingdansk.json"
 STOPS_IN_TRIPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/3115d29d-b763-4af5-93f6-763b835967d6/download/stopsintrips.json"
 DEPARTURES_URL = "https://ckan2.multimediagdansk.pl/departures"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
@@ -31,6 +32,8 @@ OWNER_USERNAME = (
 )
 _stops_cache = []
 _stops_loaded_at = 0
+_gdansk_stops_cache = []
+_gdansk_stops_loaded_at = 0
 _stops_in_trips_cache = []
 _stops_in_trips_loaded_at = 0
 _stop_times_cache = {}
@@ -1154,13 +1157,13 @@ async def admin_set_role(user_id: str, payload: dict, authorization: str = Heade
 
 @app.get("/api/stops")
 async def get_stops(refresh: bool = False):
-    global _stops_cache, _stops_loaded_at
-    if not refresh and _stops_cache and time.time() - _stops_loaded_at < 86400:
-        return {"stops": _stops_cache, "cached": True, "source": "official-stops.json"}
+    global _gdansk_stops_cache, _gdansk_stops_loaded_at
+    if not refresh and _gdansk_stops_cache and time.time() - _gdansk_stops_loaded_at < 86400:
+        return {"stops": _gdansk_stops_cache, "cached": True, "source": "official-stopsingdansk.json"}
 
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(90.0, connect=20.0), follow_redirects=True) as client:
-            response = await client.get(STOPS_URL, headers={"Accept": "application/json", "User-Agent": "Transportie-ZTM/1.0"})
+            response = await client.get(STOPS_GDANSK_URL, headers={"Accept": "application/json", "User-Agent": "Transportie-ZTM/1.0"})
             response.raise_for_status()
             raw = response.json()
 
@@ -1227,9 +1230,9 @@ async def get_stops(refresh: bool = False):
                 "top_level_keys": list(raw.keys())[:30] if isinstance(raw, dict) else [],
                 "records_found": len(records)
             })
-        _stops_cache = normalized
-        _stops_loaded_at = time.time()
-        return {"stops": normalized, "cached": False, "source": "official-stops.json"}
+        _gdansk_stops_cache = normalized
+        _gdansk_stops_loaded_at = time.time()
+        return {"stops": normalized, "cached": False, "source": "official-stopsingdansk.json"}
     except Exception as error:
         return JSONResponse(status_code=502, content={"stops": [], "error": str(error), "source": "official-stops.json"})
 
