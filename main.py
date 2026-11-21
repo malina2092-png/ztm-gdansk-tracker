@@ -538,8 +538,10 @@ function locateUser(){const button=document.getElementById('myLocation');button.
 function saveLabelSettings(){labelSettings={line:document.getElementById('showLine').checked,brigade:document.getElementById('showBrigade').checked,fleet:document.getElementById('showFleet').checked};localStorage.setItem('transportie-labels',JSON.stringify(labelSettings));const summary=document.getElementById('mapLabelSummary');if(summary)summary.textContent='Etykiety: '+([labelSettings.line?'Linia':null,labelSettings.brigade?'Brygada':null,labelSettings.fleet?'Tabor':null].filter(Boolean).join(' · ')||'wyłączone');refreshTooltips();}
 async function loadStops(){try{if(!map||!window.L)return;const response=await fetch('/api/stops?refresh=true',{cache:'no-store'});if(!response.ok)throw new Error('Nie udało się pobrać przystanków: HTTP '+response.status);const data=await response.json();allStops=Array.isArray(data.stops)?data.stops:[];console.info('[Przystanki] pobrano:',allStops.length);if(!allStops.length)throw new Error(data.error||'API zwróciło pustą listę przystanków');allStops.forEach(stop=>{const id=String(stop.stopId||stop.stop_id||''),lat=Number(stop.lat??stop.stopLat??stop.stop_lat),lon=Number(stop.lon??stop.stopLon??stop.stop_lon),name=stop.stopName||stop.stopDesc||stop.stop_name||'Przystanek',platform=String(stop.subName||stop.sub_name||stop.stopCode||stop.stop_code||stop.platform||'').trim();if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||stopMarkers[id])return;const marker=L.marker([lat,lon],{pane:'stopsPane',zIndexOffset:1000,keyboard:true,interactive:true,bubblingMouseEvents:true,icon:L.divIcon({className:'stop-marker',html:'<span class="stop-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>',iconSize:[48,48],iconAnchor:[24,24]})}).addTo(map);marker.on('click',()=>marker.openPopup());const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,19],className:'stop-label',opacity:1});marker.bindPopup('<div class="stop-popup"><b>'+safe(name)+'</b><div class="small-note">Pobieranie najbliższych odjazdów…</div></div>');marker.on('popupopen',()=>loadStopDepartures(id,marker,name));stopMarkers[id]=marker;});refreshTooltips();}catch(e){console.warn('Przystanki:',e);const results=document.getElementById('stopSearchResults');if(results)results.innerHTML='<div class="empty">Nie udało się pobrać przystanków ZTM.</div>';}}
 
-async function loadStopDepartures(id,marker,name){try{const response=await fetch('/api/departures/'+encodeURIComponent(id));if(!response.ok)throw new Error('API odjazdów');const data=await response.json();const rows=(data.departures||[]).slice(0,12);const html=rows.length?rows.map(d=>{const rawTime=d.estimatedTime||d.departureTime||d.time||d.scheduledTime;const dt=rawTime?new Date(rawTime):null;const t=dt&&!isNaN(dt.getTime())?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt&&!isNaN(dt.getTime())?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(d.delayInSeconds==null?'':(d.delayInSeconds>0?'+':'')+Math.round(d.delayInSeconds/60)+' min');return '<div class="departure-row"><span><b>'+safe(d.routeShortName||d.route)+'</b> · '+safe(d.headsign||d.direction||'kierunek nieznany')+(d.vehicleCode!=null?'<button type="button" class="departure-fleet" data-departure-vehicle="'+safe(d.vehicleCode)+'">#'+safe(d.vehicleCode)+'</button>':'')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}).join(''):'<div>Brak zaplanowanych odjazdów.</div>';marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Najbliższe odjazdy · dane ZTM</div>'+html+'</div>');}catch(e){marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div>Nie udało się pobrać odjazdów.</div></div>');}}
-async function showStopDepartures(id,name){const box=document.getElementById('selectedStopDepartures');if(box)box.innerHTML='<div class="empty">Pobieranie odjazdów…</div>';try{const response=await fetch('/api/departures/'+encodeURIComponent(id));if(!response.ok)throw new Error('API');const data=await response.json();const rows=(data.departures||[]).slice(0,20);const html=rows.length?rows.map(d=>{const raw=d.estimatedTime||d.departureTime||d.time||d.scheduledTime;const dt=raw?new Date(raw):null;const tm=dt&&!isNaN(dt.getTime())?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const mins=dt&&!isNaN(dt.getTime())?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;return '<div class="departure-row"><span><b>'+safe(d.routeShortName||d.route||'—')+'</b> · '+safe(d.headsign||d.direction||'kierunek nieznany')+(d.vehicleCode!=null?'<button type="button" class="departure-fleet" data-departure-vehicle="'+safe(d.vehicleCode)+'">#'+safe(d.vehicleCode)+'</button>':'')+'</span><span><b>'+(mins===null?'—':mins===0?'teraz':'za '+mins+' min')+'</b><br><small>'+safe(tm)+'</small></span></div>';}).join(''):'<div class="empty">Brak odjazdów w odpowiedzi ZTM.</div>';if(box)box.innerHTML='<h3>'+safe(name)+'</h3>'+html;}catch(e){if(box)box.innerHTML='<div class="empty">Nie udało się pobrać odjazdów.</div>';}}
+function parseStopTime(value){if(!value)return null;const raw=String(value).trim();let date=new Date(raw);if(!isNaN(date.getTime()))return date;const match=raw.match(/(?:T|^)(\\d{1,2}):(\\d{2})(?::(\\d{2}))?/);if(match){date=new Date();date.setHours(Number(match[1]),Number(match[2]),Number(match[3]||0),0);if(date.getTime()<Date.now()-60000)date.setDate(date.getDate()+1);return date;}return null;}
+function stopDepartureMarkup(d){const rawTime=d.estimatedTime||d.estimated_time||d.expectedTime||d.departureTime||d.arrivalTime||d.time||d.theoreticalTime||d.scheduledTime;const dt=parseStopTime(rawTime);const t=dt?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const delay=d.delayInSeconds??d.delay_in_seconds;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(delay==null?'':(delay>0?'+':'')+Math.round(delay/60)+' min');const line=d.routeShortName||d.route||d.routeId||d.route_id||'—';const direction=d.headsign||d.direction||d.destination||'kierunek nieznany';const fleet=d.vehicleCode??d.vehicleId??d.vehicleNumber??d.vehicleService??d.busServiceName;return '<div class="departure-row"><span><b>'+safe(line)+'</b> · '+safe(direction)+(fleet!=null&&fleet!==''?'<button type="button" class="departure-fleet" data-departure-vehicle="'+safe(fleet)+'">#'+safe(fleet)+'</button>':'<small class="small-note">pojazd niepodany w danych</small>')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}
+async function loadStopDepartures(id,marker,name){try{const response=await fetch('/api/departures/'+encodeURIComponent(id),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'API odjazdów');const rows=Array.isArray(data.departures)?data.departures:[];const html=rows.length?rows.slice(0,15).map(stopDepartureMarkup).join(''):'<div class="empty">Brak najbliższych odjazdów w aktualnym źródle ZTM.</div>';marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Linia · kierunek · tabor · czas przyjazdu</div>'+html+'</div>');}catch(e){marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Nie udało się pobrać odjazdów: '+safe(e.message)+'</div></div>');}}
+async function showStopDepartures(id,name){const box=document.getElementById('selectedStopDepartures');if(box)box.innerHTML='<div class="empty">Pobieranie odjazdów…</div>';try{const response=await fetch('/api/departures/'+encodeURIComponent(id),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'API odjazdów');const rows=Array.isArray(data.departures)?data.departures:[];const html=rows.length?rows.slice(0,20).map(stopDepartureMarkup).join(''):'<div class="empty">Brak najbliższych odjazdów w aktualnym źródle ZTM.</div>';if(box)box.innerHTML='<h3>'+safe(name)+'</h3><div class="small-note">Linia · kierunek · tabor · czas przyjazdu</div>'+html;}catch(e){if(box)box.innerHTML='<div class="empty">Nie udało się pobrać odjazdów: '+safe(e.message)+'</div>';}}
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
 function getSession(){try{return JSON.parse(localStorage.getItem('transportie-session')||'null');}catch(e){return null;}}
 function showAuthMessage(msg){document.getElementById('authStatus').textContent=msg;}
@@ -1728,18 +1730,71 @@ async def get_line_schedule(route_id: str):
 
 @app.get("/api/departures/{stop_id}")
 async def get_departures(stop_id: str):
+    """Return normalized live departures for one physical ZTM stop pole."""
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.get(DEPARTURES_URL, params={"stopId": stop_id})
+        async with httpx.AsyncClient(timeout=httpx.Timeout(25.0, connect=10.0), follow_redirects=True) as client:
+            response = await client.get(
+                DEPARTURES_URL,
+                params={"stopId": stop_id},
+                headers={"Accept": "application/json", "User-Agent": "Transportie-ZTM/1.0"},
+            )
             response.raise_for_status()
             data = response.json()
-        item = data if isinstance(data, dict) else {}
-        departures = item.get("departures", [])
-        if not isinstance(departures, list):
-            departures = []
-        return {
-            "lastUpdate": item.get("lastUpdate"),
-            "departures": departures[:20],
-        }
+
+        # The CKAN2 feed has appeared both as {departures:[...]} and as
+        # date-keyed / nested JSON. Find the actual departure rows instead
+        # of silently returning an empty board for an unfamiliar wrapper.
+        rows = []
+        queue = [data]
+        last_update = None
+        while queue:
+            node = queue.pop(0)
+            if isinstance(node, list):
+                if node and all(isinstance(x, dict) for x in node) and any(
+                    key in x for x in node for key in ("routeId", "routeShortName", "estimatedTime", "theoreticalTime", "vehicleCode")
+                ):
+                    rows.extend(node)
+                else:
+                    queue.extend(x for x in node if isinstance(x, (dict, list)))
+            elif isinstance(node, dict):
+                last_update = last_update or node.get("lastUpdate") or node.get("last_update")
+                found = False
+                for key in ("departures", "departure", "results", "data", "items"):
+                    value = node.get(key)
+                    if isinstance(value, list):
+                        queue.append(value)
+                        found = True
+                    elif isinstance(value, dict):
+                        queue.append(value)
+                        found = True
+                if not found:
+                    queue.extend(value for value in node.values() if isinstance(value, (dict, list)))
+
+        normalized = []
+        seen = set()
+        for row in rows:
+            route = row.get("routeShortName") or row.get("route_short_name") or row.get("route") or row.get("routeId") or row.get("route_id") or ""
+            direction = row.get("headsign") or row.get("direction") or row.get("destination") or row.get("tripHeadsign") or ""
+            vehicle = (row.get("vehicleCode") or row.get("vehicle_code") or row.get("vehicleId") or
+                       row.get("vehicle_id") or row.get("vehicleNumber") or row.get("vehicle_number") or
+                       row.get("vehicleService") or row.get("busServiceName"))
+            estimated = (row.get("estimatedTime") or row.get("estimated_time") or row.get("expectedTime") or
+                         row.get("arrivalTime") or row.get("departureTime") or row.get("time"))
+            theoretical = row.get("theoreticalTime") or row.get("theoretical_time") or row.get("scheduledTime")
+            identity = (str(route), str(direction), str(vehicle), str(estimated), str(theoretical))
+            if identity in seen:
+                continue
+            seen.add(identity)
+            normalized.append({
+                **row,
+                "routeShortName": str(route) if route != "" else "—",
+                "headsign": str(direction) if direction else "Kierunek nieznany",
+                "vehicleCode": str(vehicle) if vehicle not in (None, "") else None,
+                "estimatedTime": estimated,
+                "theoreticalTime": theoretical,
+                "delayInSeconds": row.get("delayInSeconds", row.get("delay_in_seconds")),
+            })
+        normalized.sort(key=lambda item: str(item.get("estimatedTime") or item.get("theoreticalTime") or ""))
+        return {"lastUpdate": last_update, "departures": normalized[:30], "count": len(normalized)}
     except Exception as error:
-        return JSONResponse(status_code=502, content={"departures": [], "error": str(error)})
+        return JSONResponse(status_code=502, content={"departures": [], "error": str(error)[:240]})
