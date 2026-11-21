@@ -362,15 +362,15 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  #mapa .map-side{display:none!important}
  body.mobile-menu-open #mapTools,body.mobile-menu-open #mapZoom,body.mobile-menu-open #myLocation{pointer-events:none;opacity:.35}
 }
+#mapTools{display:none!important}
+.vehicle-duty-source{color:#8eaaa0;font-size:11px;font-weight:700;padding:4px 0 9px}
+#odjazdy .departures-card{min-height:55vh}
+#odjazdy .stop-search-results button{width:100%;text-align:left;padding:11px 12px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font-size:14px}
+#odjazdy .stop-search-results button:active{background:var(--blue-soft)}
 </style>
 </head>
 <body class="menu-closed">
 <button id="menuToggle" onclick="toggleMenu()" aria-label="Otwórz lub zamknij menu">☰</button>\n
-<div id="mapTools" aria-label="Narzędzia mapy">
- <button type="button" onclick="toggleStopVisibility()" aria-label="Pokaż lub ukryj przystanki" title="Przystanki">⚑</button>
- <button type="button" onclick="toggleMapLayer()" aria-label="Zmień warstwę mapy" title="Warstwy">▱</button>
- <button type="button" onclick="showSection('ulubione',document.querySelector('nav button[onclick*=ulubione]'))" aria-label="Ulubione pojazdy" title="Ulubione">★</button>
-</div>
 <div id="mapZoom" aria-label="Przybliżenie mapy"><button type="button" onclick="zoomMap(1)" aria-label="Przybliż">+</button><button type="button" onclick="zoomMap(-1)" aria-label="Oddal">−</button></div>
 <button id="myLocation" onclick="locateUser()" aria-label="Pokaż moją lokalizację"><span class="loc-icon" aria-hidden="true"><svg viewBox="0 0 32 32" width="27" height="27" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="9" stroke="currentColor" stroke-width="2.2"/><circle cx="16" cy="16" r="3.2" fill="currentColor"/><path d="M16 2.5v6M16 23.5v6M2.5 16h6M23.5 16h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span></button>
 <header>
@@ -429,8 +429,8 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  <div class="surface"><div class="toolbar"><input id="lineSearch" placeholder="Numer linii, np. 167"><button class="primary" onclick="filterLine()">Szukaj</button></div><div id="lineResults"></div></div>
 </section>
 <section id="odjazdy">
- <div class="section-head"><div><h2>Odjazdy z przystanku</h2><div class="hint">Wyszukaj przystanek i sprawdź najbliższe kursy</div></div></div>
- <div class="surface departures-card"><input id="stopSearch" type="text" placeholder="Wpisz nazwę przystanku…" oninput="searchStops()"><div id="stopSearchResults" class="stop-search-results"><div class="empty">Ładowanie przystanków…</div></div><div id="selectedStopDepartures" class="departures-list"></div></div>
+ <div class="section-head"><div><h2>Rozkłady jazdy</h2><div class="hint">Wybierz przystanek, aby sprawdzić rzeczywiste odjazdy i najbliższe kursy ZTM</div></div></div>
+ <div class="surface departures-card"><input id="stopSearch" type="text" placeholder="Wyszukaj przystanek w rozkładzie…" oninput="searchStops()"><div id="stopSearchResults" class="stop-search-results"><div class="empty">Ładowanie przystanków…</div></div><div id="selectedStopDepartures" class="departures-list"></div></div>
 </section>
 <section id="ustawienia">
  <div class="section-head"><div><h2>Ustawienia mapy</h2><div class="hint">Dostosuj etykiety pojazdów do swoich preferencji</div></div></div>
@@ -583,7 +583,7 @@ function openVehicleDetails(v){
  }).join('');
  const technical=technicalRows?'<div class="vehicle-detail-section"><h3>Dane techniczne</h3><div class="vehicle-detail-grid">'+technicalRows+'</div></div>':'';
   const vehicleTab='<div class="vehicle-detail-section"><h3>Informacje o pojeździe</h3><div class="vehicle-detail-grid">'+(fields||'<div class="vehicle-detail-empty">Brak danych pojazdu.</div>')+'</div></div>'+technical;
- const brigadeTab='<div class="vehicle-detail-section"><h3>Rozkład brygadowy ZTM</h3><div class="vehicle-brigade-note">Brygada <b>'+safe(brigade)+'</b> · zadanie '+safe(get(v,['vehicleService'])||'—')+' · rozkład na dziś z danych ZTM.</div><div id="vehicleBrigadeCourses" class="vehicle-duty-courses"><div class="vehicle-detail-empty">Pobieranie wszystkich kursów brygady z ZTM…</div></div></div>';
+ const brigadeTab='<div class="vehicle-detail-section"><h3>Rzeczywisty rozkład brygady ZTM</h3><div class="vehicle-brigade-note">Brygada <b>'+safe(brigade)+'</b> · zadanie '+safe(get(v,['vehicleService'])||'—')+' · rozkład na dziś z danych ZTM.</div><div id="vehicleBrigadeCourses" class="vehicle-duty-courses"><div class="vehicle-detail-empty">Pobieranie wszystkich kursów brygady z ZTM…</div></div></div>';
  content.innerHTML=
   '<div class="vehicle-detail-head"><div class="vehicle-detail-line">'+safe(line||'—')+'</div><div><div class="vehicle-detail-type">'+(isTram(v)?'🚊 Tramwaj':'🚌 Autobus')+' · POJAZD LIVE</div><div class="vehicle-detail-title">'+safe(direction||'Kurs w trakcie')+'</div><span class="vehicle-live-status">● Pozycja GPS na żywo</span></div></div>'+
   '<div class="vehicle-detail-meta"><strong>#'+safe(fleet||'—')+'</strong><span>·</span><span>Brygada '+safe(brigade)+'</span><span>·</span><span>'+safe(speed==null?'—':String(speed)+' km/h')+'</span><span>·</span><span>'+safe(delay)+'</span><span>·</span><span>GPS ZTM: '+safe(formatZtmTimestamp(get(v,['generated','dataGenerated','DataGenerated']))||'—')+'</span></div>'+
@@ -598,7 +598,7 @@ overlay.classList.add('open');
  selectedVehicleCode=String(v.vehicleCode||'');
  if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}
  loadVehicleRouteStops(routeId,tripId,selectedVehicleCode,v);
- loadVehicleDuty(routeId,get(v,['vehicleService']));
+ loadVehicleDuty(routeId,get(v,['vehicleService','vehicle_service','BusServiceName','busServiceName']));
  vehicleRouteStopsTimer=setInterval(()=>{
   if(String(selectedVehicleCode)!==String(v.vehicleCode||''))return;
   const latest=Array.isArray(vehicles)?vehicles.find(item=>String(item.vehicleCode||'')===String(v.vehicleCode||'')):null;
@@ -657,13 +657,13 @@ function closeVehicleDetails(){if(vehicleRoutePolyline&&map){map.removeLayer(veh
 function formatZtmTimestamp(value){if(!value)return '';const d=new Date(value);return Number.isNaN(d.getTime())?String(value):d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 async function loadVehicleDuty(routeId,service){
  const box=document.getElementById('vehicleBrigadeCourses');if(!box)return;
- if(routeId==null||!service){box.innerHTML='<div class="vehicle-detail-empty">GPS nie przekazał identyfikatora linii lub zadania brygady.</div>';return;}
+ if(routeId==null||!service){box.innerHTML='<div class="vehicle-detail-empty">Brak identyfikatora brygady w danych GPS. Rozkład brygadowy nie może zostać dopasowany automatycznie.</div>';return;}
  try{
   const response=await fetch('/api/vehicle-duty/'+encodeURIComponent(routeId)+'/'+encodeURIComponent(service),{cache:'no-store'});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Nie udało się pobrać rozkładu brygady.');
   const courses=Array.isArray(data.courses)?data.courses:[];
-  if(!courses.length){box.innerHTML='<div class="vehicle-detail-empty">ZTM nie udostępnił kursów tej brygady na dzisiejszy dzień.</div>';return;}
-  box.innerHTML=courses.map(course=>'<article class="vehicle-duty-course"><div class="vehicle-duty-course-head"><span>Kurs '+safe(course.order||'—')+'</span><small>'+safe(course.startTime||'—')+' – '+safe(course.endTime||'—')+'</small></div>'+(course.stops||[]).map(stop=>'<div class="vehicle-duty-stop"><span>'+safe(stop.name||'Przystanek')+(stop.code?' <small>'+safe(stop.code)+'</small>':'')+'</span><time>'+safe(stop.time||'—')+'</time></div>').join('')+'</article>').join('');
+  if(!courses.length){box.innerHTML='<div class="vehicle-detail-empty">Brak kursów tej brygady w dzisiejszym rozkładzie ZTM.</div>';return;}
+  box.innerHTML='<div class="vehicle-duty-source">Rozkład ZTM · '+safe(data.date||'dzisiaj')+' · '+safe(data.count||courses.length)+' kursów</div>'+courses.map(course=>'<article class="vehicle-duty-course"><div class="vehicle-duty-course-head"><span>Kurs '+safe(course.order||'—')+'</span><small>'+safe(course.startTime||'—')+' – '+safe(course.endTime||'—')+'</small></div>'+(course.stops||[]).map(stop=>'<div class="vehicle-duty-stop"><span>'+safe(stop.name||'Przystanek')+(stop.code?' <small>'+safe(stop.code)+'</small>':'')+'</span><time>'+safe(stop.time||'—')+'</time></div>').join('')+'</article>').join('');
  }catch(error){box.innerHTML='<div class="vehicle-detail-empty">'+safe(error.message||'Błąd pobierania danych ZTM.')+'</div>';}
 }
 function selectVehicleTab(tab,button){const root=document.getElementById('vehicleDetailContent');if(!root)return;root.querySelectorAll('[data-vehicle-tab]').forEach(x=>x.classList.toggle('active',x===button));root.querySelectorAll('[data-vehicle-panel]').forEach(x=>x.classList.toggle('active',x.getAttribute('data-vehicle-panel')===tab));}
@@ -804,8 +804,10 @@ async def live():
             aliases = {
                 "vehicleCode": ("VehicleCode",),
                 "routeShortName": ("Line", "line"),
-                "tripId": ("Route", "route"),
-                "vehicleService": ("VehicleService",),
+                "routeId": ("RouteId", "routeID", "route_id", "routeid"),
+                "tripId": ("TripId", "trip_id", "tripID", "Route", "route"),
+                "vehicleService": ("VehicleService", "vehicle_service", "BusServiceName", "busServiceName", "bus_service_name"),
+                "scheduledTripStartTime": ("ScheduledTripStartTime", "scheduled_trip_start_time", "TripStartTime"),
                 "vehicleId": ("VehicleId",),
                 "speed": ("Speed",),
                 "delay": ("Delay",),
