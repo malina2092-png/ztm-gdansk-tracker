@@ -11,7 +11,7 @@ app = FastAPI(title="Transportie")
 
 GPS_URL = "https://ckan2.multimediagdansk.pl/gpsPositions?v=2"
 VEHICLE_DB_URL = "https://files.cloudgdansk.pl/d/otwarte-dane/ztm/baza-pojazdow.json?v=2"
-STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json"
+STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/d3e96eb6-25ad-4d6c-8651-b1eb39155945/download/stopsingdansk.json"
 STOPS_IN_TRIPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/3115d29d-b763-4af5-93f6-763b835967d6/download/stopsintrips.json"
 DEPARTURES_URL = "https://ckan2.multimediagdansk.pl/departures"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
@@ -1205,10 +1205,8 @@ async def get_stops(refresh: bool = False):
                 continue
             if sid is None or not (53.8 <= lat <= 54.8 and 18.0 <= lon <= 19.2):
                 continue
-            # Jeśli źródło podaje gminę, pozostawiamy wyłącznie Gdańsk.
-            zone = str(item.get("zoneName") or item.get("zone_name") or "").strip().casefold()
-            if zone and zone not in ("gdańsk", "gdansk"):
-                continue
+            # Korzystamy z dedykowanego, oficjalnego zasobu stopsingdansk.json,
+            # więc nie odrzucamy słupków na podstawie opcjonalnego zoneName.
             sid = str(sid)
             if sid in used:
                 continue
