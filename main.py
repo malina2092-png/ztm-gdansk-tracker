@@ -226,7 +226,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 :root{color-scheme:light}
 :root[data-theme="dark"]{color-scheme:dark;--bg:#0c0d0f;--surface:rgba(25,26,29,.96);--ink:#f1f2f4;--muted:#a0a4ad;--line:#303238;--blue:#70a7ff;--blue-soft:#202d40;--shadow:0 12px 34px rgba(0,0,0,.34)}
 :root[data-theme="dark"] body{background:#0c0d0f;color:var(--ink)}
-:root[data-theme="dark"] .leaflet-tile{filter:brightness(.72) invert(.86) hue-rotate(180deg) saturate(.7) contrast(.92)}
+:root[data-theme="dark"] .leaflet-tile{filter:none!important}
 :root[data-theme="dark"] nav,:root[data-theme="dark"] .surface,:root[data-theme="dark"] .card,:root[data-theme="dark"] .settings-grid,:root[data-theme="dark"] .theme-setting{background:#191a1d!important;color:var(--ink);border-color:#303238!important}
 :root[data-theme="dark"] #mapa .map-side .surface{background:rgba(25,26,29,.94)!important;color:var(--ink)}
 :root[data-theme="dark"] .check{background:#222429;color:var(--ink);border-color:#383b42}
@@ -300,6 +300,19 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
   :root[data-theme="dark"] nav{background:rgba(20,21,24,.98)!important;border-color:#303238!important;box-shadow:0 -7px 26px rgba(0,0,0,.45)!important}
   :root[data-theme="dark"] nav button{color:#c7cbd3!important;background:transparent!important}
   :root[data-theme="dark"] nav button.active{background:#202d40!important;color:#8bb9ff!important}
+}
+
+
+/* Mapa zachowuje oryginalne kafelki i kolory */
+#mapa,#mapa .map-layout,#mapa .map-layout>.surface,#map{background:#e8e5dc}
+.leaflet-container{background:#e8e5dc}
+:root[data-theme="dark"] #mapa .map-layout>.surface{background:transparent!important}
+:root[data-theme="dark"] .leaflet-tile{filter:none!important}
+@media(max-width:850px){
+  #mapa .map-side{top:76px;right:12px;bottom:auto;max-height:38vh;overflow:auto}
+  #mapVehicleSearchPanel{top:78px;width:calc(100vw - 92px);max-width:490px}
+  #mapZoom{top:145px}
+  #map{height:100dvh;min-height:100dvh}
 }
 
 </style>
