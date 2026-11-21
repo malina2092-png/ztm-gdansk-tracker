@@ -375,6 +375,8 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .leaflet-tooltip.stop-label{background:transparent!important;border:0!important;border-radius:0!important;color:#2876d0!important;padding:1px 3px!important;font-size:12px!important;line-height:1.15!important;font-weight:800!important;text-align:center!important;white-space:nowrap!important;text-shadow:0 1px 2px rgba(0,0,0,.9)!important;box-shadow:none!important}
 .leaflet-tooltip.stop-label:before{display:none!important}
 .leaflet-tooltip.stop-label .stop-platform{display:block;font-size:11px;font-weight:800;letter-spacing:.2px}
+
+.schedule-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:8px 0 14px}.schedule-head h3{margin:0}.schedule-head small{color:var(--muted)}.schedule-direction{margin:14px 0}.schedule-direction h4{margin:8px 0;color:var(--text)}.schedule-course{border-bottom:1px solid var(--border);padding:0}.schedule-course summary{display:flex;align-items:center;gap:12px;list-style:none;cursor:pointer;padding:12px 4px}.schedule-course summary::-webkit-details-marker{display:none}.schedule-course summary>b{font-size:16px;color:var(--accent);min-width:48px}.schedule-course summary span{flex:1}.schedule-course summary small{color:var(--muted)}.schedule-stop-list{padding:0 8px 10px 16px}.schedule-stop-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}.schedule-stop-row small{color:var(--muted)}.schedule-stop-row b{white-space:nowrap}
 </style>
 </head>
 <body class="menu-closed">
@@ -438,8 +440,13 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  <div class="surface"><div class="toolbar"><input id="lineSearch" placeholder="Numer linii, np. 167"><button class="primary" onclick="filterLine()">Szukaj</button></div><div id="lineResults"></div></div>
 </section>
 <section id="odjazdy">
- <div class="section-head"><div><h2>Rozkłady jazdy</h2><div class="hint">Wybierz przystanek, aby sprawdzić rzeczywiste odjazdy i najbliższe kursy ZTM</div></div></div>
- <div class="surface departures-card"><input id="stopSearch" type="text" placeholder="Wyszukaj przystanek w rozkładzie…" oninput="searchStops()"><div id="stopSearchResults" class="stop-search-results"><div class="empty">Ładowanie przystanków…</div></div><div id="selectedStopDepartures" class="departures-list"></div></div>
+ <div class="section-head"><div><h2>Rozkłady jazdy</h2><div class="hint">Wybierz linię, a następnie kierunek i kurs z rozkładu ZTM</div></div></div>
+ <div class="surface departures-card">
+  <label class="small-note" for="routeSearch">Wyszukaj linię</label>
+  <input id="routeSearch" type="search" placeholder="Numer linii, np. 167" oninput="filterScheduleLines()">
+  <div id="routeSearchResults" class="stop-search-results"><div class="empty">Ładowanie listy linii…</div></div>
+  <div id="selectedLineSchedule" class="departures-list"></div>
+ </div>
 </section>
 <section id="ustawienia">
  <div class="section-head"><div><h2>Ustawienia mapy</h2><div class="hint">Dostosuj etykiety pojazdów do swoich preferencji</div></div></div>
@@ -511,7 +518,7 @@ if(window.matchMedia){const themeMedia=window.matchMedia('(prefers-color-scheme:
 applyTheme();
 let fleetDatabaseRows=[];
 async function loadFleetDatabase(force){const status=document.getElementById('fleetDatabaseStatus'),box=document.getElementById('fleetDatabaseTable');if(!status||!box)return;status.textContent='Pobieranie oficjalnej bazy pojazdów ZTM…';if(force)box.innerHTML='';try{const response=await fetch('/api/fleet',{cache:force?'no-store':'default'});const data=await response.json();if(!response.ok||data.error)throw new Error(data.error||'Błąd pobierania bazy');fleetDatabaseRows=Array.isArray(data.vehicles)?data.vehicles:[];status.textContent='Pojazdy w bazie: '+fleetDatabaseRows.length+' · Źródło: '+(data.source||'ZTM Gdańsk')+' · Aktualizacja: '+(data.lastUpdate||'brak informacji');renderFleetDatabase();}catch(error){status.textContent='Nie udało się pobrać bazy pojazdów: '+error.message;box.innerHTML='<div class="empty">Dane źródłowe są chwilowo niedostępne. Spróbuj ponownie później.</div>';}}
-function renderFleetDatabase(){const box=document.getElementById('fleetDatabaseTable');if(!box)return;const q=(document.getElementById('fleetDatabaseSearch')?.value||'').trim().toLowerCase();const rows=fleetDatabaseRows.filter(v=>Object.values(v).some(x=>x!=null&&String(x).toLowerCase().includes(q)));if(!rows.length){box.innerHTML='<div class="empty">Brak pojazdów pasujących do wyszukiwania.</div>';return;}const val=(v,keys)=>{for(const k of keys){if(v[k]!=null&&String(v[k]).trim()!=='')return String(v[k]);}return '—';};box.innerHTML='<div class="table-wrap"><table><thead><tr><th>Nr taborowy</th><th>Marka / model</th><th>Przewoźnik</th><th>Typ</th><th>Rok</th></tr></thead><tbody>'+rows.map(v=>'<tr><td><b>#'+safe(val(v,['vehicleCode','fleetNumber','fleet','number']))+'</b></td><td>'+safe([val(v,['brand','make','manufacturer']) ,val(v,['model','vehicleModel'])].filter(x=>x!=='—').join(' ')||'—')+'</td><td>'+safe(val(v,['carrier','carrirer','operator']))+'</td><td>'+safe(val(v,['vehicleType','type','category']))+'</td><td>'+safe(val(v,['productionYear','year','manufactureYear']))+'</td></tr>').join('')+'</tbody></table></div>';}function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(button)button.classList.add('active');if(window.innerWidth<=850){document.body.classList.add('menu-closed');document.body.classList.remove('mobile-menu-open');document.querySelectorAll('#bottomNav button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'")));}if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),180);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();if(id==='baza')loadFleetDatabase(false);if(id==='konto')refreshAccount();if(id==='odjazdy'){if(!allStops.length)loadStops();searchStops();}}
+function renderFleetDatabase(){const box=document.getElementById('fleetDatabaseTable');if(!box)return;const q=(document.getElementById('fleetDatabaseSearch')?.value||'').trim().toLowerCase();const rows=fleetDatabaseRows.filter(v=>Object.values(v).some(x=>x!=null&&String(x).toLowerCase().includes(q)));if(!rows.length){box.innerHTML='<div class="empty">Brak pojazdów pasujących do wyszukiwania.</div>';return;}const val=(v,keys)=>{for(const k of keys){if(v[k]!=null&&String(v[k]).trim()!=='')return String(v[k]);}return '—';};box.innerHTML='<div class="table-wrap"><table><thead><tr><th>Nr taborowy</th><th>Marka / model</th><th>Przewoźnik</th><th>Typ</th><th>Rok</th></tr></thead><tbody>'+rows.map(v=>'<tr><td><b>#'+safe(val(v,['vehicleCode','fleetNumber','fleet','number']))+'</b></td><td>'+safe([val(v,['brand','make','manufacturer']) ,val(v,['model','vehicleModel'])].filter(x=>x!=='—').join(' ')||'—')+'</td><td>'+safe(val(v,['carrier','carrirer','operator']))+'</td><td>'+safe(val(v,['vehicleType','type','category']))+'</td><td>'+safe(val(v,['productionYear','year','manufactureYear']))+'</td></tr>').join('')+'</tbody></table></div>';}function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(button)button.classList.add('active');if(window.innerWidth<=850){document.body.classList.add('menu-closed');document.body.classList.remove('mobile-menu-open');document.querySelectorAll('#bottomNav button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'")));}if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),180);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();if(id==='baza')loadFleetDatabase(false);if(id==='konto')refreshAccount();if(id==='odjazdy'){loadScheduleRoutes();}}
  window.showSection=showSection;
 function toggleMenu(){if(window.innerWidth<=850){document.body.classList.toggle('mobile-menu-open');}else{document.body.classList.toggle('menu-closed');}if(map)setTimeout(()=>map.invalidateSize(),260);}
 function showBottomSection(id,button){showSection(id,button);document.querySelectorAll('#bottomNav button').forEach(b=>b.classList.toggle('active',b===button));}
@@ -682,7 +689,33 @@ window.openVehicleDetails=openVehicleDetails;window.closeVehicleDetails=closeVeh
 let selectedVehicleCode=null;
 let vehicleRoutePolyline=null;
 function refreshTooltips(){vehicles.forEach(v=>{const id=String(v.vehicleCode||'');if(markers[id]){const icon=vehicleIcon(v),html=icon.options&&icon.options.html||'';if(markers[id]._transportieIconHtml!==html){markers[id].setIcon(icon);markers[id]._transportieIconHtml=html;}}});const zoom=map?map.getZoom():12,bounds=map?map.getBounds():null;Object.values(stopMarkers).forEach(marker=>{if(zoom>=15&&bounds&&bounds.contains(marker.getLatLng())){marker.openTooltip&&marker.openTooltip();}else{marker.closeTooltip&&marker.closeTooltip();}});}
-function searchStops(){const results=document.getElementById('stopSearchResults');if(!results)return;const q=(document.getElementById('stopSearch')?.value||'').trim().toLowerCase();const matches=allStops.filter(s=>String(s.stopName||'').toLowerCase().includes(q)).slice(0,40);results.innerHTML=matches.length?matches.map(s=>'<button type="button" data-stop-select="'+safe(s.stopId)+'" data-stop-name="'+safe(s.stopName)+'">🚏 '+safe(s.stopName)+'</button>').join(''):'<div class="empty">Nie znaleziono przystanku.</div>';}
+let scheduleRoutes=[];
+async function loadScheduleRoutes(force=false){
+ const box=document.getElementById('routeSearchResults');if(!box)return;
+ if(scheduleRoutes.length&&!force){filterScheduleLines();return;}
+ box.innerHTML='<div class="empty">Pobieranie listy linii ZTM…</div>';
+ try{const response=await fetch('/api/routes');const data=await response.json();if(!response.ok)throw new Error(data.error||'Błąd listy linii');scheduleRoutes=Array.isArray(data.routes)?data.routes:[];filterScheduleLines();}
+ catch(error){box.innerHTML='<div class="empty">Nie udało się pobrać listy linii ZTM.</div>';console.warn('Linie:',error);}
+}
+function filterScheduleLines(){
+ const box=document.getElementById('routeSearchResults');if(!box)return;
+ const q=(document.getElementById('routeSearch')?.value||'').trim().toLowerCase();
+ const matches=scheduleRoutes.filter(r=>(String(r.routeShortName||'')+' '+String(r.routeLongName||'')).toLowerCase().includes(q)).slice(0,80);
+ box.innerHTML=matches.length?matches.map(r=>'<button type="button" data-schedule-route="'+safe(r.routeId)+'"><b>Linia '+safe(r.routeShortName)+'</b><br><small>'+safe(r.routeLongName||'Rozkład ZTM')+'</small></button>').join(''):'<div class="empty">Nie znaleziono linii.</div>';
+}
+async function selectScheduleLine(routeId){
+ const route=scheduleRoutes.find(r=>String(r.routeId)===String(routeId));if(!route)return;
+ const box=document.getElementById('selectedLineSchedule');if(!box)return;
+ box.innerHTML='<div class="empty">Pobieranie rozkładu linii '+safe(route.routeShortName)+'…</div>';
+ try{
+  const response=await fetch('/api/line-schedule/'+encodeURIComponent(routeId));const data=await response.json();if(!response.ok)throw new Error(data.error||'Błąd rozkładu');
+  const courses=Array.isArray(data.courses)?data.courses:[];
+  if(!courses.length){box.innerHTML='<h3>Linia '+safe(route.routeShortName)+'</h3><div class="empty">Brak kursów w rozkładzie na '+safe(data.date||'dzisiaj')+'.</div>';return;}
+  const directions={};courses.forEach(c=>{const key=c.direction||'Kierunek nieznany';(directions[key]||(directions[key]=[])).push(c);});
+  box.innerHTML='<div class="schedule-head"><h3>Linia '+safe(route.routeShortName)+'</h3><small>Rozkład na '+safe(data.date||'dzisiaj')+' · '+courses.length+' kursów</small></div>'+Object.entries(directions).map(([direction,list])=>'<section class="schedule-direction"><h4>Kierunek: '+safe(direction)+'</h4>'+list.map(c=>'<details class="schedule-course"><summary><b>'+safe(c.start||'—')+'</b><span>'+safe(c.service?'Brygada '+c.service:'Kurs')+'</span><small>'+c.stops.length+' przystanków</small></summary><div class="schedule-stop-list">'+c.stops.map(st=>'<div class="schedule-stop-row"><span>'+safe(st.name)+(st.note?' <small>'+safe(st.note)+'</small>':'')+'</span><b>'+safe(st.time||'—')+'</b></div>').join('')+'</div></details>').join('')+'</section>').join('');
+ }catch(error){box.innerHTML='<div class="empty">Nie udało się pobrać rozkładu tej linii.</div>';console.warn('Rozkład linii:',error);}
+}
+
 const mapSearchInput=document.getElementById("mapVehicleSearch");if(mapSearchInput){mapSearchInput.addEventListener("focus",()=>document.body.classList.add("map-search-active"));mapSearchInput.addEventListener("blur",()=>{if(!mapSearchInput.value.trim())document.body.classList.remove("map-search-active");});}
 function clearMapVehicleSearch(){const input=document.getElementById('mapVehicleSearch');if(input){input.value='';input.blur();}document.body.classList.remove('map-search-active');searchMapVehicles();}window.clearMapVehicleSearch=clearMapVehicleSearch;
 function searchMapVehicles(){const input=document.getElementById('mapVehicleSearch'),box=document.getElementById('mapVehicleSearchResults');if(!input||!box)return;const q=input.value.trim().toLowerCase();if(!q){box.style.display='none';box.innerHTML='';return;}const matches=vehicles.filter(v=>(String(v.vehicleCode||'')+' '+String(v.routeShortName||'')+' '+String(brigadeFor(v))+' '+String(v.destination||v.finalStop||'')).toLowerCase().includes(q)).slice(0,15);box.style.display='block';box.innerHTML=matches.length?matches.map(v=>'<button type="button" data-map-vehicle="'+safe(v.vehicleCode)+'" style="display:block;width:100%;text-align:left;padding:10px;border:0;border-top:1px solid #e6eaf0;background:transparent;color:inherit"><b>🚌 #'+safe(v.vehicleCode)+'</b> · linia '+safe(v.routeShortName)+' · brygada '+safe(brigadeFor(v))+'<br><small>'+safe(v.destination||v.finalStop||'Kierunek niedostępny')+' · opóźnienie: '+safe(formatDelaySeconds(v.delayInSeconds!=null?v.delayInSeconds:v.delay))+'</small></button>').join(''):'<div class="empty">Nie znaleziono aktywnych pojazdów.</div>';}
@@ -1516,6 +1549,125 @@ async def get_vehicle_duty(route_id: str, vehicle_service: str):
             "courses": [],
             "error": "Nie udało się pobrać rozkładu brygady ZTM: " + str(error)[:220],
         })
+
+@app.get("/api/routes")
+async def get_routes():
+    """Return the current passenger line list from ZTM static data."""
+    try:
+        async with httpx.AsyncClient(timeout=25, follow_redirects=True) as client:
+            response = await client.get("https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/22313c56-5acf-41c7-a5fd-dc5dc72b3851/download/routes.json")
+            response.raise_for_status()
+            raw = response.json()
+        records = raw if isinstance(raw, list) else []
+        if isinstance(raw, dict):
+            dated = [(key, value.get("routes")) for key, value in raw.items()
+                     if isinstance(value, dict) and isinstance(value.get("routes"), list)]
+            if dated:
+                records = sorted(dated, key=lambda item: item[0])[-1][1]
+            else:
+                records = raw.get("routes") or raw.get("results") or []
+        routes = [item for item in records if isinstance(item, dict)
+                  and item.get("routeId") is not None
+                  and str(item.get("routeShortName") or "").strip()]
+        routes.sort(key=lambda item: (not str(item.get("routeShortName") or "").isdigit(),
+                                      str(item.get("routeShortName") or "")))
+        return {"routes": routes}
+    except Exception as error:
+        return JSONResponse(status_code=502, content={"routes": [], "error": str(error)})
+
+
+@app.get("/api/line-schedule/{route_id}")
+async def get_line_schedule(route_id: str):
+    """Return today's timetable grouped into individual courses for one line."""
+    global _stops_cache, _stops_loaded_at, _stops_in_trips_cache, _stops_in_trips_loaded_at
+    try:
+        today = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
+        async with httpx.AsyncClient(timeout=40, follow_redirects=True) as client:
+            schedule_response = await client.get("https://ckan2.multimediagdansk.pl/stopTimes",
+                                                 params={"date": today, "routeId": route_id})
+            schedule_response.raise_for_status()
+            raw_schedule = schedule_response.json()
+            rows = raw_schedule if isinstance(raw_schedule, list) else []
+            if isinstance(raw_schedule, dict):
+                rows = raw_schedule.get("stopTimes") or raw_schedule.get("stop_times") or raw_schedule.get("results") or []
+                if not rows:
+                    for value in raw_schedule.values():
+                        if isinstance(value, dict):
+                            rows = value.get("stopTimes") or value.get("stop_times") or value.get("results") or []
+                            if rows:
+                                break
+            if not _stops_cache or time.time() - _stops_loaded_at > 86400:
+                stop_response = await client.get(STOPS_URL)
+                stop_response.raise_for_status()
+                raw_stops = stop_response.json()
+                stop_rows = raw_stops if isinstance(raw_stops, list) else []
+                if isinstance(raw_stops, dict):
+                    stop_rows = raw_stops.get("stops") or raw_stops.get("results") or raw_stops.get("data") or []
+                    if not stop_rows:
+                        dated = [(key, value.get("stops")) for key, value in raw_stops.items()
+                                 if isinstance(value, dict) and isinstance(value.get("stops"), list)]
+                        if dated:
+                            stop_rows = sorted(dated, key=lambda item: item[0])[-1][1]
+                _stops_cache = stop_rows if isinstance(stop_rows, list) else []
+                _stops_loaded_at = time.time()
+            if not _stops_in_trips_cache or time.time() - _stops_in_trips_loaded_at > 86400:
+                trips_response = await client.get(STOPS_IN_TRIPS_URL)
+                trips_response.raise_for_status()
+                raw_trips = trips_response.json()
+                trip_rows = raw_trips if isinstance(raw_trips, list) else []
+                if isinstance(raw_trips, dict):
+                    trip_rows = raw_trips.get("stopsInTrip") or raw_trips.get("results") or raw_trips.get("data") or []
+                    if not trip_rows:
+                        dated = [(key, value.get("stopsInTrip")) for key, value in raw_trips.items()
+                                 if isinstance(value, dict) and isinstance(value.get("stopsInTrip"), list)]
+                        if dated:
+                            trip_rows = sorted(dated, key=lambda item: item[0])[-1][1]
+                _stops_in_trips_cache = trip_rows if isinstance(trip_rows, list) else []
+
+        stop_lookup = {}
+        for item in _stops_cache:
+            if not isinstance(item, dict):
+                continue
+            sid = item.get("stopId", item.get("stop_id", item.get("id")))
+            if sid is not None:
+                stop_lookup[str(sid)] = item.get("stopName") or item.get("stopDesc") or item.get("stop_name") or "Przystanek"
+        trip_stops = {}
+        for item in _stops_in_trips_cache:
+            if not isinstance(item, dict) or str(item.get("routeId")) != str(route_id):
+                continue
+            trip_stops.setdefault(str(item.get("tripId")), []).append(item)
+        grouped = {}
+        for row in rows if isinstance(rows, list) else []:
+            if not isinstance(row, dict):
+                continue
+            key = (str(row.get("tripId", "")), str(row.get("busServiceName") or ""), str(row.get("order") or ""))
+            grouped.setdefault(key, []).append(row)
+        courses = []
+        for (trip_id, service, order), course_rows in grouped.items():
+            course_rows.sort(key=lambda item: int(item.get("stopSequence") or 0))
+            stops = []
+            for row in course_rows:
+                sid = str(row.get("stopId", ""))
+                departure = str(row.get("departureTime") or row.get("arrivalTime") or "")
+                clock = departure[-8:-3] if "T" in departure else departure[:5]
+                stops.append({"stopId": sid, "name": stop_lookup.get(sid, "Przystanek"),
+                              "time": clock, "sequence": int(row.get("stopSequence") or 0),
+                              "note": row.get("noteDescription") or row.get("noteSymbol") or ""})
+            if not stops:
+                continue
+            last_name = ""
+            ordered_trip_stops = sorted(trip_stops.get(trip_id, []), key=lambda item: int(item.get("stopSequence") or 0))
+            if ordered_trip_stops:
+                last_name = stop_lookup.get(str(ordered_trip_stops[-1].get("stopId")), "")
+            courses.append({"tripId": trip_id, "service": service, "order": order,
+                            "direction": last_name or stops[-1]["name"],
+                            "start": next((stop["time"] for stop in stops if stop["time"]), ""),
+                            "stops": stops})
+        courses.sort(key=lambda item: (item["start"] or "99:99", item["service"], item["order"]))
+        return {"date": today, "courses": courses, "count": len(courses)}
+    except Exception as error:
+        return JSONResponse(status_code=502, content={"courses": [], "error": str(error)})
+
 
 @app.get("/api/departures/{stop_id}")
 async def get_departures(stop_id: str):
