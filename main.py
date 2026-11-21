@@ -11,7 +11,7 @@ app = FastAPI(title="Transportie")
 
 GPS_URL = "https://ckan2.multimediagdansk.pl/gpsPositions?v=2"
 VEHICLE_DB_URL = "https://files.cloudgdansk.pl/d/otwarte-dane/ztm/baza-pojazdow.json?v=2"
-STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/d3e96eb6-25ad-4d6c-8651-b1eb39155945/download/stopsingdansk.json"
+STOPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json"
 STOPS_IN_TRIPS_URL = "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/3115d29d-b763-4af5-93f6-763b835967d6/download/stopsintrips.json"
 DEPARTURES_URL = "https://ckan2.multimediagdansk.pl/departures"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
@@ -498,7 +498,7 @@ let map=null;let allStops=[];let stopRenderer=null;let vehiclesUpdateInFlight=fa
 function initMap(){
  try{
   if(!window.L||map)return;
-  map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([54.3520,18.6466],12);L.control.attribution({prefix:'🇵🇱'}).addTo(map);map.whenReady(()=>{if(typeof loadStops==='function')loadStops();});map.on('zoomend',refreshTooltips);map.on('moveend',refreshTooltips);map.on('click',function(event){if(!map)return;const tap=map.latLngToContainerPoint(event.latlng);let nearest=null,nearestDistance=30;Object.entries(stopMarkers).forEach(([id,marker])=>{const point=map.latLngToContainerPoint(marker.getLatLng()),distance=point.distanceTo(tap);if(distance<nearestDistance){nearestDistance=distance;nearest=marker;}});if(nearest)nearest.openPopup();});stopRenderer=L.svg({padding:0.5});
+  map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([54.3520,18.6466],12);if(!map.getPane('stopsPane')){map.createPane('stopsPane');map.getPane('stopsPane').style.zIndex='625';}L.control.attribution({prefix:'🇵🇱'}).addTo(map);map.whenReady(()=>{if(typeof loadStops==='function')loadStops();});map.on('zoomend',refreshTooltips);map.on('moveend',refreshTooltips);map.on('click',function(event){if(!map)return;const tap=map.latLngToContainerPoint(event.latlng);let nearest=null,nearestDistance=30;Object.entries(stopMarkers).forEach(([id,marker])=>{const point=map.latLngToContainerPoint(marker.getLatLng()),distance=point.distanceTo(tap);if(distance<nearestDistance){nearestDistance=distance;nearest=marker;}});if(nearest)nearest.openPopup();});stopRenderer=L.svg({padding:0.5});
   mapDarkTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19,className:'transportie-dark-tiles'}).addTo(map);
   mapLightTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19});
  }catch(e){console.error('Map init:',e);}
@@ -536,7 +536,7 @@ function zoomMap(delta){if(map)map.setZoom(map.getZoom()+delta);}
 window.zoomMap=zoomMap;
 function locateUser(){const button=document.getElementById('myLocation');button.disabled=true;if(!navigator.geolocation){button.disabled=false;return;}navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude,lon=pos.coords.longitude;if(map){if(userLocationMarker)map.removeLayer(userLocationMarker);userLocationMarker=L.circleMarker([lat,lon],{radius:10,color:'#fff',weight:4,fillColor:'#1765d1',fillOpacity:1}).addTo(map).bindPopup('Twoja lokalizacja');map.setView([lat,lon],16);userLocationMarker.openPopup();}button.disabled=false;},()=>{button.disabled=false;},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});}
 function saveLabelSettings(){labelSettings={line:document.getElementById('showLine').checked,brigade:document.getElementById('showBrigade').checked,fleet:document.getElementById('showFleet').checked};localStorage.setItem('transportie-labels',JSON.stringify(labelSettings));const summary=document.getElementById('mapLabelSummary');if(summary)summary.textContent='Etykiety: '+([labelSettings.line?'Linia':null,labelSettings.brigade?'Brygada':null,labelSettings.fleet?'Tabor':null].filter(Boolean).join(' · ')||'wyłączone');refreshTooltips();}
-async function loadStops(){try{if(!map||!window.L)return;const response=await fetch('/api/stops?refresh=true',{cache:'no-store'});if(!response.ok)throw new Error('Nie udało się pobrać przystanków: HTTP '+response.status);const data=await response.json();allStops=Array.isArray(data.stops)?data.stops:[];console.info('[Przystanki] pobrano:',allStops.length);if(!allStops.length)throw new Error(data.error||'API zwróciło pustą listę przystanków');allStops.forEach(stop=>{const id=String(stop.stopId||stop.stop_id||''),lat=Number(stop.lat??stop.stopLat??stop.stop_lat),lon=Number(stop.lon??stop.stopLon??stop.stop_lon),name=stop.stopName||stop.stopDesc||stop.stop_name||'Przystanek',platform=String(stop.subName||stop.sub_name||stop.stopCode||stop.stop_code||stop.platform||'').trim();if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||stopMarkers[id])return;const marker=L.marker([lat,lon],{pane:'markerPane',zIndexOffset:1000,keyboard:true,interactive:true,bubblingMouseEvents:true,icon:L.divIcon({className:'stop-marker',html:'<span class="stop-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>',iconSize:[48,48],iconAnchor:[24,24]})}).addTo(map);marker.on('click',()=>marker.openPopup());const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,19],className:'stop-label',opacity:1});marker.bindPopup('<div class="stop-popup"><b>'+safe(name)+'</b><div class="small-note">Pobieranie najbliższych odjazdów…</div></div>');marker.on('popupopen',()=>loadStopDepartures(id,marker,name));stopMarkers[id]=marker;});refreshTooltips();}catch(e){console.warn('Przystanki:',e);const results=document.getElementById('stopSearchResults');if(results)results.innerHTML='<div class="empty">Nie udało się pobrać przystanków ZTM.</div>';}}
+async function loadStops(){try{if(!map||!window.L)return;const response=await fetch('/api/stops?refresh=true',{cache:'no-store'});if(!response.ok)throw new Error('Nie udało się pobrać przystanków: HTTP '+response.status);const data=await response.json();allStops=Array.isArray(data.stops)?data.stops:[];console.info('[Przystanki] pobrano:',allStops.length);if(!allStops.length)throw new Error(data.error||'API zwróciło pustą listę przystanków');allStops.forEach(stop=>{const id=String(stop.stopId||stop.stop_id||''),lat=Number(stop.lat??stop.stopLat??stop.stop_lat),lon=Number(stop.lon??stop.stopLon??stop.stop_lon),name=stop.stopName||stop.stopDesc||stop.stop_name||'Przystanek',platform=String(stop.subName||stop.sub_name||stop.stopCode||stop.stop_code||stop.platform||'').trim();if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||stopMarkers[id])return;const marker=L.marker([lat,lon],{pane:'stopsPane',zIndexOffset:1000,keyboard:true,interactive:true,bubblingMouseEvents:true,icon:L.divIcon({className:'stop-marker',html:'<span class="stop-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>',iconSize:[48,48],iconAnchor:[24,24]})}).addTo(map);marker.on('click',()=>marker.openPopup());const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,19],className:'stop-label',opacity:1});marker.bindPopup('<div class="stop-popup"><b>'+safe(name)+'</b><div class="small-note">Pobieranie najbliższych odjazdów…</div></div>');marker.on('popupopen',()=>loadStopDepartures(id,marker,name));stopMarkers[id]=marker;});refreshTooltips();}catch(e){console.warn('Przystanki:',e);const results=document.getElementById('stopSearchResults');if(results)results.innerHTML='<div class="empty">Nie udało się pobrać przystanków ZTM.</div>';}}
 
 async function loadStopDepartures(id,marker,name){try{const response=await fetch('/api/departures/'+encodeURIComponent(id));if(!response.ok)throw new Error('API odjazdów');const data=await response.json();const rows=(data.departures||[]).slice(0,12);const html=rows.length?rows.map(d=>{const rawTime=d.estimatedTime||d.departureTime||d.time||d.scheduledTime;const dt=rawTime?new Date(rawTime):null;const t=dt&&!isNaN(dt.getTime())?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt&&!isNaN(dt.getTime())?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(d.delayInSeconds==null?'':(d.delayInSeconds>0?'+':'')+Math.round(d.delayInSeconds/60)+' min');return '<div class="departure-row"><span><b>'+safe(d.routeShortName||d.route)+'</b> · '+safe(d.headsign||d.direction||'kierunek nieznany')+(d.vehicleCode!=null?'<button type="button" class="departure-fleet" data-departure-vehicle="'+safe(d.vehicleCode)+'">#'+safe(d.vehicleCode)+'</button>':'')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}).join(''):'<div>Brak zaplanowanych odjazdów.</div>';marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Najbliższe odjazdy · dane ZTM</div>'+html+'</div>');}catch(e){marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div>Nie udało się pobrać odjazdów.</div></div>');}}
 async function showStopDepartures(id,name){const box=document.getElementById('selectedStopDepartures');if(box)box.innerHTML='<div class="empty">Pobieranie odjazdów…</div>';try{const response=await fetch('/api/departures/'+encodeURIComponent(id));if(!response.ok)throw new Error('API');const data=await response.json();const rows=(data.departures||[]).slice(0,20);const html=rows.length?rows.map(d=>{const raw=d.estimatedTime||d.departureTime||d.time||d.scheduledTime;const dt=raw?new Date(raw):null;const tm=dt&&!isNaN(dt.getTime())?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const mins=dt&&!isNaN(dt.getTime())?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;return '<div class="departure-row"><span><b>'+safe(d.routeShortName||d.route||'—')+'</b> · '+safe(d.headsign||d.direction||'kierunek nieznany')+(d.vehicleCode!=null?'<button type="button" class="departure-fleet" data-departure-vehicle="'+safe(d.vehicleCode)+'">#'+safe(d.vehicleCode)+'</button>':'')+'</span><span><b>'+(mins===null?'—':mins===0?'teraz':'za '+mins+' min')+'</b><br><small>'+safe(tm)+'</small></span></div>';}).join(''):'<div class="empty">Brak odjazdów w odpowiedzi ZTM.</div>';if(box)box.innerHTML='<h3>'+safe(name)+'</h3>'+html;}catch(e){if(box)box.innerHTML='<div class="empty">Nie udało się pobrać odjazdów.</div>';}}
@@ -1107,82 +1107,84 @@ async def admin_set_role(user_id: str, payload: dict, authorization: str = Heade
 async def get_stops(refresh: bool = False):
     global _stops_cache, _stops_loaded_at
     if not refresh and _stops_cache and time.time() - _stops_loaded_at < 86400:
-        return {"stops": _stops_cache, "cached": True}
+        return {"stops": _stops_cache, "cached": True, "source": "official-stops.json"}
 
     try:
-        async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
-            response = await client.get(STOPS_URL, headers={"User-Agent": "Transportie-ZTM/1.0"})
+        async with httpx.AsyncClient(timeout=httpx.Timeout(90.0, connect=20.0), follow_redirects=True) as client:
+            response = await client.get(STOPS_URL, headers={"Accept": "application/json", "User-Agent": "Transportie-ZTM/1.0"})
             response.raise_for_status()
             raw = response.json()
 
-        # Dane ZTM bywają listą, obiektem opakowującym albo słownikiem
-        # dat -> obiektów z listą przystanków. Szukamy list rekordów
-        # niezależnie od poziomu zagnieżdżenia.
+        # ZTM publikuje dane jako listę albo jako obiekt z kluczem daty,
+        # wewnątrz którego znajduje się tablica "stops".
         records = []
         queue = [raw]
-        seen = set()
         while queue:
             node = queue.pop(0)
-            if id(node) in seen:
-                continue
-            seen.add(id(node))
             if isinstance(node, list):
-                if node and any(isinstance(x, dict) for x in node):
-                    records.extend(x for x in node if isinstance(x, dict))
-                    continue
-                for value in node:
-                    if isinstance(value, (dict, list)):
-                        queue.append(value)
-            elif isinstance(node, dict):
-                for key in ("stops", "results", "data", "items", "records"):
-                    value = node.get(key)
-                    if isinstance(value, list):
-                        queue.append(value)
-                # Niektóre eksporty przechowują rekordy pod kluczami ID.
-                if not any(isinstance(node.get(k), list) for k in ("stops", "results", "data", "items", "records")):
-                    if any(k in node for k in ("stopId", "stop_id", "id", "stopLat", "stop_lat")):
-                        records.append(node)
+                if node and all(isinstance(x, dict) for x in node):
+                    # Tablica rekordów przystanków.
+                    if any(("stopId" in x or "stop_id" in x) for x in node):
+                        records.extend(node)
                     else:
+                        queue.extend(node)
+                else:
+                    queue.extend(x for x in node if isinstance(x, (dict, list)))
+            elif isinstance(node, dict):
+                stops_list = node.get("stops")
+                if isinstance(stops_list, list):
+                    queue.append(stops_list)
+                else:
+                    for key in ("results", "data", "items", "records"):
+                        value = node.get(key)
+                        if isinstance(value, (dict, list)):
+                            queue.append(value)
+                    if not any(isinstance(node.get(k), (dict, list)) for k in ("stops", "results", "data", "items", "records")):
                         for value in node.values():
                             if isinstance(value, (dict, list)):
                                 queue.append(value)
 
-        stops = []
-        used_ids = set()
+        normalized = []
+        used = set()
         for item in records:
-            stop_id = item.get("stopId", item.get("stop_id", item.get("id", item.get("stopCode"))))
-            name = item.get("stopName") or item.get("stopDesc") or item.get("stop_name") or item.get("name") or "Przystanek"
+            sid = item.get("stopId", item.get("stop_id", item.get("id")))
             lat = item.get("stopLat", item.get("stop_lat", item.get("lat", item.get("latitude"))))
             lon = item.get("stopLon", item.get("stop_lon", item.get("lon", item.get("longitude"))))
             try:
                 lat, lon = float(lat), float(lon)
             except (TypeError, ValueError):
                 continue
-            if stop_id is None or not (53.8 <= lat <= 54.8 and 18.0 <= lon <= 19.2):
+            if sid is None or not (53.8 <= lat <= 54.8 and 18.0 <= lon <= 19.2):
                 continue
-            if str(item.get("virtual", "0")).lower() in ("1", "true") or str(item.get("nonpassenger", "0")).lower() in ("1", "true") or str(item.get("depot", "0")).lower() in ("1", "true"):
+            # Jeśli źródło podaje gminę, pozostawiamy wyłącznie Gdańsk.
+            zone = str(item.get("zoneName") or item.get("zone_name") or "").strip().casefold()
+            if zone and zone not in ("gdańsk", "gdansk"):
                 continue
-            sid = str(stop_id)
-            if sid in used_ids:
+            sid = str(sid)
+            if sid in used:
                 continue
-            used_ids.add(sid)
-            stops.append({
-                "stopId": sid, "stopName": str(name),
+            used.add(sid)
+            normalized.append({
+                "stopId": sid,
+                "stopName": str(item.get("stopName") or item.get("stopDesc") or item.get("stop_name") or item.get("name") or "Przystanek"),
                 "stopCode": str(item.get("stopCode") or item.get("stop_code") or ""),
-                "subName": str(item.get("subName") or item.get("sub_name") or item.get("stopShortname") or item.get("stop_shortname") or item.get("platform") or ""),
-                "lat": lat, "lon": lon
+                "subName": str(item.get("subName") or item.get("sub_name") or ""),
+                "lat": lat,
+                "lon": lon
             })
 
-        if not stops:
+        if not normalized:
             return JSONResponse(status_code=502, content={
-                "stops": [], "error": "Źródło ZTM odpowiedziało, ale nie znaleziono rekordów z identyfikatorem i współrzędnymi.",
-                "source_type": type(raw).__name__, "top_level_keys": list(raw.keys())[:20] if isinstance(raw, dict) else []
+                "stops": [], "error": "Oficjalny zasób stops.json nie zwrócił rozpoznawalnych przystanków Gdańska.",
+                "source_type": type(raw).__name__,
+                "top_level_keys": list(raw.keys())[:30] if isinstance(raw, dict) else [],
+                "records_found": len(records)
             })
-        _stops_cache = stops
+        _stops_cache = normalized
         _stops_loaded_at = time.time()
-        return {"stops": stops, "cached": False}
+        return {"stops": normalized, "cached": False, "source": "official-stops.json"}
     except Exception as error:
-        return JSONResponse(status_code=502, content={"stops": [], "error": str(error)})
+        return JSONResponse(status_code=502, content={"stops": [], "error": str(error), "source": "official-stops.json"})
 
 
 @app.get("/api/vehicle-route/{route_id}/{trip_id}")
