@@ -303,6 +303,12 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 }
 
 
+/* Stabilne kafelki OSM bez klucza API CARTO; filtr tylko dla warstwy ciemnej */
+.transportie-dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.78) contrast(.88) saturate(.78)!important}
+:root[data-theme="dark"] .transportie-dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.78) contrast(.88) saturate(.78)!important}
+:root[data-theme="light"] .transportie-dark-tiles{filter:none!important}
+.leaflet-container{background:#202426!important}
+.leaflet-tile{max-width:none!important}
 /* Mapa zachowuje oryginalne kafelki i kolory */
 #mapa,#mapa .map-layout,#mapa .map-layout>.surface,#map{background:#e8e5dc}
 .leaflet-container{background:#e8e5dc}
@@ -469,8 +475,8 @@ function initMap(){
  try{
   if(!window.L||map)return;
   map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([54.3520,18.6466],12);L.control.attribution({prefix:'🇵🇱'}).addTo(map);map.on('zoomend',refreshTooltips);map.on('moveend',refreshTooltips);map.on('click',function(event){if(!map)return;const tap=map.latLngToContainerPoint(event.latlng);let nearest=null,nearestDistance=30;Object.entries(stopMarkers).forEach(([id,marker])=>{const point=map.latLngToContainerPoint(marker.getLatLng()),distance=point.distanceTo(tap);if(distance<nearestDistance){nearestDistance=distance;nearest=marker;}});if(nearest)nearest.openPopup();});stopRenderer=L.svg({padding:0.5});
-  mapDarkTiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:20}).addTo(map);
-  mapLightTiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:20});
+  mapDarkTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19,className:'transportie-dark-tiles'}).addTo(map);
+  mapLightTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19});
  }catch(e){console.error('Map init:',e);}
 }
 function loadMapLibrary(){
@@ -525,7 +531,7 @@ window.toggleMenu=toggleMenu;window.locateUser=locateUser;window.searchStops=sea
 function brigadeFor(v){const service=String(v.vehicleService||'');const match=service.match(/-(\d{2})$/);return match?match[1]:'—';}
 function labelFor(v){const parts=[];if(labelSettings.line)parts.push('Linia '+(v.routeShortName||'?'));if(labelSettings.brigade)parts.push('Brygada '+brigadeFor(v));if(labelSettings.fleet)parts.push('Tabor '+(v.vehicleCode||'?'));return parts.join(' · ')||'Pojazd';}
 function isTram(v){const route=String(v.routeShortName||'').trim();const service=String(v.vehicleType||v.type||v.vehicleService||'').toLowerCase();return service.includes('tram')||/^(2|3|4|5|6|7|8|9|10|11|12)$/.test(route);}
-function vehicleIcon(v){const label=labelFor(v);const tram=isTram(v);const color=tram?'#2878df':'#dc3545';const zoom=map?map.getZoom():14;if(zoom<=12)return L.divIcon({className:'vehicle-marker',html:'<div class="vehicle-dot" style="background:'+color+'"></div>',iconSize:[12,12],iconAnchor:[6,6]});const compact=zoom<=14;const shown=compact?(v.routeShortName||'•'):label;const width=Math.max(28,Math.min(150,shown.length*5.7+14));return L.divIcon({className:'vehicle-marker',html:'<div class="vehicle-chip" style="background:'+color+';color:#fff;border:1px solid '+color+';border-radius:5px;padding:'+(compact?'2px 4px':'3px 5px')+';font-size:'+(compact?'9px':'10px')+';box-shadow:0 1px 4px #17243a33;font-weight:800;white-space:nowrap">'+safe(shown)+'</div>',iconSize:[width,compact?16:20],iconAnchor:[width/2,compact?8:10]});}
+function vehicleIcon(v){const label=labelFor(v);const tram=isTram(v);const color=tram?'#2878df':'#dc3545';const zoom=map?map.getZoom():14;if(zoom<=10)return L.divIcon({className:'vehicle-marker',html:'<div class="vehicle-dot" style="background:'+color+'"></div>',iconSize:[12,12],iconAnchor:[6,6]});const compact=zoom<=14;const shown=compact?(v.routeShortName||'•'):label;const width=Math.max(28,Math.min(150,shown.length*5.7+14));return L.divIcon({className:'vehicle-marker',html:'<div class="vehicle-chip" style="background:'+color+';color:#fff;border:1px solid '+color+';border-radius:5px;padding:'+(compact?'2px 4px':'3px 5px')+';font-size:'+(compact?'9px':'10px')+';box-shadow:0 1px 4px #17243a33;font-weight:800;white-space:nowrap">'+safe(shown)+'</div>',iconSize:[width,compact?16:20],iconAnchor:[width/2,compact?8:10]});}
 function formatDelaySeconds(value){if(value===null||value===undefined||value===''||!Number.isFinite(Number(value)))return 'brak danych';const minutes=Math.round(Number(value)/60);if(minutes>0)return '-'+minutes+' min';if(minutes<0)return '+'+Math.abs(minutes)+' min';return 'punktualnie';}
 function vehicleField(label,value,extra){if(value===undefined||value===null||value==='')return '';return '<div class="vehicle-detail-field"><span>'+safe(label)+'</span><b '+(extra||'')+'>'+safe(value)+'</b></div>';}
 function vehicleValue(v,keys){for(const key of keys){if(v[key]!==undefined&&v[key]!==null&&v[key]!=='')return v[key];}return null;}
