@@ -689,6 +689,16 @@ window.openVehicleDetails=openVehicleDetails;window.closeVehicleDetails=closeVeh
 let selectedVehicleCode=null;
 let vehicleRoutePolyline=null;
 function refreshTooltips(){vehicles.forEach(v=>{const id=String(v.vehicleCode||'');if(markers[id]){const icon=vehicleIcon(v),html=icon.options&&icon.options.html||'';if(markers[id]._transportieIconHtml!==html){markers[id].setIcon(icon);markers[id]._transportieIconHtml=html;}}});const zoom=map?map.getZoom():12,bounds=map?map.getBounds():null;Object.values(stopMarkers).forEach(marker=>{if(zoom>=15&&bounds&&bounds.contains(marker.getLatLng())){marker.openTooltip&&marker.openTooltip();}else{marker.closeTooltip&&marker.closeTooltip();}});}
+// Zgodność ze starszymi elementami HTML, które mogą jeszcze wywoływać searchStops().
+function searchStops(){
+ const input=document.getElementById('stopSearch');
+ const box=document.getElementById('stopSearchResults');
+ if(!input||!box)return;
+ const q=(input.value||'').trim().toLowerCase();
+ const matches=(Array.isArray(allStops)?allStops:[]).filter(stop=>(String(stop.stopName||stop.stopDesc||'')+' '+String(stop.stopId||'')).toLowerCase().includes(q)).slice(0,60);
+ box.innerHTML=matches.length?matches.map(stop=>'<button type="button" data-stop-select="'+safe(stop.stopId)+'" data-stop-name="'+safe(stop.stopName||stop.stopDesc||'Przystanek')+'">'+safe(stop.stopName||stop.stopDesc||'Przystanek')+'</button>').join(''):'<div class="empty">Nie znaleziono przystanków.</div>';
+}
+window.searchStops=searchStops;
 let scheduleRoutes=[];
 async function loadScheduleRoutes(force=false){
  const box=document.getElementById('routeSearchResults');if(!box)return;
