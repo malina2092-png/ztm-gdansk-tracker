@@ -390,7 +390,9 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .leaflet-tooltip.stop-label .stop-platform{display:block!important;font-size:11px!important;font-weight:800!important}
 
 /* Czytelne, klikalne ikony przystanków — zielony znacznik z białym autobusem. */
-.leaflet-marker-icon.stop-marker{width:44px!important;height:44px!important;margin-left:-22px!important;margin-top:-22px!important;background:transparent!important;border:0!important;padding:0!important;overflow:visible!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;}
+.leaflet-marker-icon.stop-marker{width:48px!important;height:48px!important;background:transparent!important;border:0!important;padding:0!important;overflow:visible!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;}
+.leaflet-marker-icon.stop-marker .stop-icon{display:grid!important;place-items:center!important;width:44px!important;height:44px!important;box-sizing:border-box!important;border-radius:50%!important;background:#009b70!important;border:2px solid #fff!important;color:#fff!important;box-shadow:0 2px 7px rgba(0,0,0,.55)!important;}
+.leaflet-marker-icon.stop-marker .stop-icon svg{display:block!important;width:25px!important;height:25px!important;}
 .leaflet-tooltip.stop-label{z-index:1000!important;white-space:nowrap!important;}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#171b22;color:#f5f7fa;}
 .stop-popup{min-width:230px;color:#f5f7fa;}
@@ -566,10 +568,10 @@ async function loadStops(){
    const name=stop.stopName||stop.stopDesc||stop.stop_name||stop.name||'Przystanek';
    const platform=String(stop.subName||stop.sub_name||stop.stopCode||stop.stop_code||stop.platform||'').trim();
    if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||lat<53.8||lat>54.8||lon<18||lon>19.2||stopMarkers[id])return;
-   const iconHtml='<div aria-label="Przystanek autobusowy" role="img" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#07996d;border:3px solid #fff;color:#fff;box-shadow:0 2px 9px rgba(0,0,0,.75);"><svg viewBox="0 0 24 24" width="25" height="25" aria-hidden="true" style="display:block;flex:none;"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+   const iconHtml='<span class="stop-icon" aria-label="Przystanek autobusowy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
    const marker=L.marker([lat,lon],{
-    pane:'markerPane',zIndexOffset:1200,keyboard:true,interactive:true,
-    icon:L.divIcon({className:'stop-marker',html:iconHtml,iconSize:[44,44],iconAnchor:[22,22]})
+    pane:'stopsPane',zIndexOffset:1200,keyboard:true,interactive:true,bubblingMouseEvents:true,
+    icon:L.divIcon({className:'stop-marker',html:iconHtml,iconSize:[48,48],iconAnchor:[24,24]})
    }).addTo(map);
    const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);
    marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,22],className:'stop-label',opacity:1});
