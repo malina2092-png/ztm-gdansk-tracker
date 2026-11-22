@@ -404,10 +404,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 #map .leaflet-stop-pane{z-index:680!important;pointer-events:auto!important}
 #map .leaflet-div-icon.stop-marker{display:block!important;width:48px!important;height:48px!important;background:transparent!important;border:0!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;cursor:pointer!important}
 #map .leaflet-div-icon.stop-marker .stop-icon{display:grid!important;place-items:center!important;position:absolute!important;inset:2px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:50%!important;background:#009b70!important;border:2px solid #fff!important;color:#fff!important;box-shadow:0 2px 9px rgba(0,0,0,.65)!important;pointer-events:auto!important}
-#map .leaflet-div-icon.stop-marker .stop-icon svg{display:block!important;width:25px!important;height:25px!important;pointer-events:none!important}
-.vehicle-favorite-toggle{position:absolute;top:10px;right:57px;z-index:5;width:36px;height:36px;border:0;border-radius:50%;background:#242a33;color:#ffd34e;font-size:25px;line-height:1;display:grid;place-items:center;cursor:pointer}
-.vehicle-favorite-toggle[aria-pressed="true"]{color:#ffd34e;background:#3b3420}
-.vehicle-detail-close{z-index:6}
+#map .leaflet-div-icon.stop-marker .stop-icon svg{display:block!important;width:25px!important;height:25px!important;pointer-events:none!important}.vehicle-detail-close{z-index:6}
 </style>
 </head>
 <body class="menu-closed">
@@ -446,7 +443,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
   <div class="map-search-input-wrap"><span aria-hidden="true">⌕</span><input id="mapVehicleSearch" type="search" placeholder="Szukaj pojazdu: linia, brygada, numer taborowy…" autocomplete="off" oninput="searchMapVehicles()" aria-label="Wyszukiwarka pojazdów na mapie"><button type="button" id="clearMapVehicleSearch" onclick="clearMapVehicleSearch()" aria-label="Wyczyść wyszukiwanie">×</button></div>
   <div id="mapVehicleSearchResults" style="display:none;max-height: min(48vh,360px);overflow-y:auto;margin-top:7px"></div>
  </div>
- <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><button class="vehicle-detail-close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button><button class="vehicle-favorite-toggle" type="button" onclick="toggleSelectedVehicleFavorite()" aria-label="Dodaj pojazd do ulubionych" aria-pressed="false" title="Dodaj do ulubionych">☆</button><div id="vehicleDetailContent"></div></article></div>
+ <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><button class="vehicle-detail-close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button><div id="vehicleDetailContent"></div></article></div>
  <div class="map-layout">
   <div class="surface"><div id="map"></div></div>
   <aside class="map-side">
