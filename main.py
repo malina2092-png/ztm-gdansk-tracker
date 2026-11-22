@@ -467,6 +467,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  <button type="button" onclick="showBottomSection('komunikaty',this)"><span>●</span><small>Komunikaty</small></button>
  <button type="button" class="active" onclick="showBottomSection('mapa',this)"><span>📍</span><small>Mapa</small></button>
  <button type="button" onclick="showBottomSection('odjazdy',this)"><span>🚏</span><small>Odjazdy</small></button>
+ <button type="button" onclick="showBottomSection('rozklady',this)"><span>▤</span><small>Rozkłady</small></button>
  <button type="button" onclick="toggleMenu()"><span>☰</span><small>Menu</small></button>
 </div>
 <main>
