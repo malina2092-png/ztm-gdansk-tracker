@@ -405,6 +405,13 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 #map .leaflet-div-icon.stop-marker{display:block!important;width:48px!important;height:48px!important;background:transparent!important;border:0!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;cursor:pointer!important}
 #map .leaflet-div-icon.stop-marker .stop-icon{display:grid!important;place-items:center!important;position:absolute!important;inset:2px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:50%!important;background:#009b70!important;border:2px solid #fff!important;color:#fff!important;box-shadow:0 2px 9px rgba(0,0,0,.65)!important;pointer-events:auto!important}
 #map .leaflet-div-icon.stop-marker .stop-icon svg{display:block!important;width:25px!important;height:25px!important;pointer-events:none!important}.vehicle-detail-close{z-index:6}
+
+/* Widoczne, klikalne ikony przystanków — nadpisanie dawnych reguł 10px. */
+.leaflet-stop-pane{z-index:680!important;pointer-events:auto!important}
+.leaflet-stop-pane .leaflet-marker-icon.stop-marker{width:42px!important;height:42px!important;margin-left:-21px!important;margin-top:-21px!important;display:grid!important;place-items:center!important;pointer-events:auto!important;opacity:1!important}
+.leaflet-stop-pane .stop-icon{display:grid!important;place-items:center!important;width:34px!important;height:34px!important;border:2px solid #fff!important;border-radius:11px!important;background:#087b55!important;color:#fff!important;box-shadow:0 2px 9px #001b1380!important;font-size:0!important}
+.leaflet-stop-pane .stop-icon svg{display:block!important;width:22px!important;height:22px!important;max-width:none!important;max-height:none!important}
+.leaflet-stop-pane .leaflet-tooltip.stop-label{z-index:690!important;white-space:nowrap!important;pointer-events:none!important}
 </style>
 </head>
 <body class="menu-closed">
@@ -915,32 +922,63 @@ async def live():
                 except Exception:
                     pass
 
-        raw_vehicles = data.get("vehicles") or data.get("Vehicles") or []
+        # The feed has used both a flat {vehicles:[...]} response and
+        # nested/date-keyed wrappers. Find vehicle rows recursively so a
+        # harmless wrapper change does not make the whole map look offline.
+        raw_vehicles = data.get("vehicles") or data.get("Vehicles") or data.get("vehiclePositions") or data.get("VehiclePositions") or []
         if isinstance(raw_vehicles, dict):
             raw_vehicles = list(raw_vehicles.values())
+        if not isinstance(raw_vehicles, list) or not raw_vehicles:
+            queue = [data]
+            candidates = []
+            while queue:
+                node = queue.pop(0)
+                if isinstance(node, list):
+                    dict_rows = [item for item in node if isinstance(item, dict)]
+                    if dict_rows and any(
+                        any(key in item for key in ("vehicleCode", "VehicleCode", "vehicleId", "VehicleId", "Lat", "lat", "latitude", "position"))
+                        for item in dict_rows
+                    ):
+                        candidates.append(dict_rows)
+                    else:
+                        queue.extend(item for item in node if isinstance(item, (dict, list)))
+                elif isinstance(node, dict):
+                    queue.extend(value for value in node.values() if isinstance(value, (dict, list)))
+            raw_vehicles = max(candidates, key=len) if candidates else []
         if not isinstance(raw_vehicles, list):
             raise ValueError("Źródło GPS nie zwróciło listy pojazdów.")
+        if not raw_vehicles:
+            raise ValueError("Źródło GPS nie zawiera obecnie żadnych pozycji pojazdów.")
 
         vehicles = []
         for raw in raw_vehicles:
             if not isinstance(raw, dict):
                 continue
-            # Normalise documented ZTM v2 names and tolerate legacy capitalised fields.
             vehicle = dict(raw)
+            position = vehicle.get("position") or vehicle.get("Position") or vehicle.get("location") or vehicle.get("Location") or {}
+            if isinstance(position, dict):
+                for key in ("lat", "latitude", "Latitude", "Lat"):
+                    if vehicle.get("lat") is None and position.get(key) is not None:
+                        vehicle["lat"] = position[key]
+                        break
+                for key in ("lon", "lng", "longitude", "Longitude", "Lon"):
+                    if vehicle.get("lon") is None and position.get(key) is not None:
+                        vehicle["lon"] = position[key]
+                        break
             aliases = {
-                "vehicleCode": ("VehicleCode",),
-                "routeShortName": ("Line", "line"),
+                "vehicleCode": ("VehicleCode", "vehiclecode", "fleetNumber", "FleetNumber"),
+                "routeShortName": ("Line", "line", "routeShortName"),
                 "routeId": ("RouteId", "routeID", "route_id", "routeid"),
                 "tripId": ("TripId", "trip_id", "tripID", "Route", "route"),
                 "vehicleService": ("VehicleService", "vehicle_service", "BusServiceName", "busServiceName", "bus_service_name"),
                 "scheduledTripStartTime": ("ScheduledTripStartTime", "scheduled_trip_start_time", "TripStartTime"),
-                "vehicleId": ("VehicleId",),
+                "vehicleId": ("VehicleId", "vehicle_id"),
                 "speed": ("Speed",),
                 "delay": ("Delay",),
                 "lat": ("Lat", "latitude", "Latitude"),
                 "lon": ("Lon", "lng", "longitude", "Longitude"),
                 "gpsQuality": ("GPSQuality", "gps_quality"),
-                "generated": ("DataGenerated", "dataGenerated"),
+                "generated": ("DataGenerated", "dataGenerated", "generated"),
                 "headsign": ("Headsign",),
                 "direction": ("Direction",),
             }
@@ -950,15 +988,20 @@ async def live():
                         if vehicle.get(source) is not None:
                             vehicle[target] = vehicle[source]
                             break
-
+            try:
+                vehicle["lat"] = float(vehicle.get("lat"))
+                vehicle["lon"] = float(vehicle.get("lon"))
+            except (TypeError, ValueError):
+                continue
+            if not (53.8 <= vehicle["lat"] <= 54.8 and 18.0 <= vehicle["lon"] <= 19.2):
+                continue
+            if vehicle.get("vehicleCode") is None and vehicle.get("vehicleId") is not None:
+                vehicle["vehicleCode"] = vehicle["vehicleId"]
+            if vehicle.get("vehicleCode") is None:
+                continue
             code = vehicle.get("vehicleCode")
             fleet = _vehicle_db.get(str(code), {}) if code is not None else {}
-            vehicle["carrier"] = (
-                fleet.get("carrier")
-                or fleet.get("carrirer")
-                or fleet.get("operator")
-                or "—"
-            )
+            vehicle["carrier"] = fleet.get("carrier") or fleet.get("carrirer") or fleet.get("operator") or "—"
             vehicle["fleetInfo"] = fleet
             vehicles.append(vehicle)
 
