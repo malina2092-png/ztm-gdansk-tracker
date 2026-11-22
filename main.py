@@ -371,6 +371,31 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 #odjazdy .stop-search-results button{width:100%;text-align:left;padding:11px 12px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font-size:14px}
 #odjazdy .stop-search-results button:active{background:var(--blue-soft)}
 
+
+/* Czynaczas-inspired independent bottom sheets for live departures and vehicle details. */
+.vehicle-detail-card{background:#111!important;color:#eee!important;border-color:#343434!important;border-radius:22px 22px 0 0!important}
+.vehicle-detail-close{background:#07951d!important;color:#fff!important;width:52px!important;height:52px!important;right:10px!important;top:-52px!important;font-size:34px!important}
+.vehicle-detail-favorite{position:absolute;right:78px;top:-48px;width:42px;height:42px;border:0;border-radius:50%;background:#b00050;color:#fff;font-size:26px;z-index:4}
+.vehicle-detail-grabber{background:#777!important}
+.vehicle-detail-field,.vehicle-detail-empty,.vehicle-technical-list div{background:#1b1b1b!important;border-color:#383838!important;color:#eee!important}
+.vehicle-detail-field span,.vehicle-detail-section h3,.vehicle-detail-type,.vehicle-detail-subtitle{color:#aaa!important}
+.vehicle-detail-field b,.vehicle-detail-title,.vehicle-detail-meta{color:#eee!important}
+.stop-departures-overlay{position:fixed;inset:0;z-index:5100;display:none;align-items:flex-end;justify-content:center;pointer-events:none}
+.stop-departures-overlay.open{display:flex;pointer-events:auto}
+.stop-departures-backdrop{position:absolute;inset:0;background:#0008}
+.stop-departures-card{position:relative;width:min(620px,100%);max-height:78dvh;overflow:auto;background:#111;color:#eee;border:1px solid #444;border-radius:22px 22px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px #0008}
+.stop-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.stop-card-heading small{color:#0aa12c;font-weight:800;letter-spacing:.08em}
+.stop-card-heading h3{margin:3px 0 0;font-size:22px}
+.stop-card-close{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:#07951d;color:white;font-size:30px}
+.stop-departures-card .departure-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 10px;border:1px solid #393939;border-radius:13px;margin:10px 0;background:#151515;color:#eee}
+.stop-departures-card .departure-row>span:last-child{text-align:right;white-space:nowrap}
+.stop-departures-card .departure-row b{font-size:17px}
+.stop-departures-card .departure-row small{color:#aaa}
+.stop-departures-card .departure-fleet{margin-left:8px;background:#087e55;color:white;border:0;border-radius:7px;padding:4px 7px}
+#odjazdy .stop-search-results button{width:100%;text-align:left;padding:12px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink)}
+#odjazdy .stop-departure-card{min-height:55vh}
+
 /* Przystanki na mapie — styl inspirowany widokiem czynaczas.pl */
 .stop-marker{background:transparent!important;border:0!important;width:48px!important;height:48px!important}
 .stop-icon{display:grid!important;place-items:center;width:44px!important;height:44px!important;border-radius:50%!important;background:#009b70!important;border:2px solid rgba(255,255,255,.95)!important;color:#fff!important;box-shadow:0 2px 7px rgba(0,0,0,.5)!important}
@@ -430,6 +455,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  <button onclick="showSection('wyjechalo',this)">🚌 Co wyjechało</button>
  <button onclick="showSection('linia',this)">🔎 Pojazdy na linii</button>
  <button onclick="showSection('odjazdy',this)">🚏 Odjazdy z przystanku</button>
+ <button onclick="showSection('rozklady',this)">▤ Rozkłady jazdy</button>
  <button onclick="showSection('ustawienia',this)">⚙️ Ustawienia</button>
  <button onclick="showSection('baza',this)">🚍 Baza pojazdów ZTM</button>
  <button onclick="showSection('konto',this)">👤 Konto</button>
@@ -440,7 +466,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  <button type="button" onclick="showBottomSection('ulubione',this)"><span>★</span><small>Ulubione</small></button>
  <button type="button" onclick="showBottomSection('komunikaty',this)"><span>●</span><small>Komunikaty</small></button>
  <button type="button" class="active" onclick="showBottomSection('mapa',this)"><span>📍</span><small>Mapa</small></button>
- <button type="button" onclick="showBottomSection('odjazdy',this)"><span>▤</span><small>Rozkłady</small></button>
+ <button type="button" onclick="showBottomSection('odjazdy',this)"><span>🚏</span><small>Odjazdy</small></button>
  <button type="button" onclick="toggleMenu()"><span>☰</span><small>Menu</small></button>
 </div>
 <main>
@@ -450,7 +476,8 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
   <div class="map-search-input-wrap"><span aria-hidden="true">⌕</span><input id="mapVehicleSearch" type="search" placeholder="Szukaj pojazdu: linia, brygada, numer taborowy…" autocomplete="off" oninput="searchMapVehicles()" aria-label="Wyszukiwarka pojazdów na mapie"><button type="button" id="clearMapVehicleSearch" onclick="clearMapVehicleSearch()" aria-label="Wyczyść wyszukiwanie">×</button></div>
   <div id="mapVehicleSearchResults" style="display:none;max-height: min(48vh,360px);overflow-y:auto;margin-top:7px"></div>
  </div>
- <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><button class="vehicle-detail-close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button><div id="vehicleDetailContent"></div></article></div>
+ <div id="stopDeparturesOverlay" class="stop-departures-overlay" aria-hidden="true"><div class="stop-departures-backdrop" onclick="closeStopDepartures()"></div><article id="stopDeparturesContent" class="stop-departures-card" role="dialog" aria-modal="true" aria-label="Odjazdy z przystanku"></article></div>
+  <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><button class="vehicle-detail-favorite" id="vehicleDetailFavorite" type="button" onclick="toggleSelectedVehicleFavorite()" aria-label="Dodaj pojazd do ulubionych">☆</button><button class="vehicle-detail-close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button><div id="vehicleDetailContent"></div></article></div>
  <div class="map-layout">
   <div class="surface"><div id="map"></div></div>
   <aside class="map-side">
@@ -475,7 +502,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  <div class="surface"><div class="toolbar"><input id="lineSearch" placeholder="Numer linii, np. 167"><button class="primary" onclick="filterLine()">Szukaj</button></div><div id="lineResults"></div></div>
 </section>
 <section id="odjazdy">
- <div class="section-head"><div><h2>Rozkłady jazdy</h2><div class="hint">Wybierz linię, a następnie kierunek i kurs z rozkładu ZTM</div></div></div>
+ <div class="section-head"><div><h2>Odjazdy z przystanku</h2><div class="hint">Wybierz przystanek lub kliknij zieloną ikonę na mapie</div></div></div>
+ <div class="surface departures-card stop-departure-card">
+  <label class="small-note" for="stopSearch">Wyszukaj przystanek</label>
+  <input id="stopSearch" type="search" placeholder="Nazwa przystanku lub numer…" oninput="searchStops()">
+  <div id="stopSearchResults" class="stop-search-results"><div class="empty">Ładowanie przystanków ZTM…</div></div>
+  <div id="selectedStopDepartures" class="selected-stop-departures"><div class="empty">Wybierz przystanek, aby zobaczyć odjazdy na żywo.</div></div>
+ </div>
+</section>
+<section id="rozklady">
+ <div class="section-head"><div><h2>Rozkłady jazdy</h2><div class="hint">Pełne kursy ZTM według linii, kierunku i przystanków</div></div></div>
  <div class="surface departures-card">
   <label class="small-note" for="routeSearch">Wyszukaj linię</label>
   <input id="routeSearch" type="search" placeholder="Numer linii, np. 167" oninput="filterScheduleLines()">
@@ -553,7 +589,7 @@ if(window.matchMedia){const themeMedia=window.matchMedia('(prefers-color-scheme:
 applyTheme();
 let fleetDatabaseRows=[];
 async function loadFleetDatabase(force){const status=document.getElementById('fleetDatabaseStatus'),box=document.getElementById('fleetDatabaseTable');if(!status||!box)return;status.textContent='Pobieranie oficjalnej bazy pojazdów ZTM…';if(force)box.innerHTML='';try{const response=await fetch('/api/fleet',{cache:force?'no-store':'default'});const data=await response.json();if(!response.ok||data.error)throw new Error(data.error||'Błąd pobierania bazy');fleetDatabaseRows=Array.isArray(data.vehicles)?data.vehicles:[];status.textContent='Pojazdy w bazie: '+fleetDatabaseRows.length+' · Źródło: '+(data.source||'ZTM Gdańsk')+' · Aktualizacja: '+(data.lastUpdate||'brak informacji');renderFleetDatabase();}catch(error){status.textContent='Nie udało się pobrać bazy pojazdów: '+error.message;box.innerHTML='<div class="empty">Dane źródłowe są chwilowo niedostępne. Spróbuj ponownie później.</div>';}}
-function renderFleetDatabase(){const box=document.getElementById('fleetDatabaseTable');if(!box)return;const q=(document.getElementById('fleetDatabaseSearch')?.value||'').trim().toLowerCase();const rows=fleetDatabaseRows.filter(v=>Object.values(v).some(x=>x!=null&&String(x).toLowerCase().includes(q)));if(!rows.length){box.innerHTML='<div class="empty">Brak pojazdów pasujących do wyszukiwania.</div>';return;}const val=(v,keys)=>{for(const k of keys){if(v[k]!=null&&String(v[k]).trim()!=='')return String(v[k]);}return '—';};box.innerHTML='<div class="table-wrap"><table><thead><tr><th>Nr taborowy</th><th>Marka / model</th><th>Przewoźnik</th><th>Typ</th><th>Rok</th></tr></thead><tbody>'+rows.map(v=>'<tr><td><b>#'+safe(val(v,['vehicleCode','fleetNumber','fleet','number']))+'</b></td><td>'+safe([val(v,['brand','make','manufacturer']) ,val(v,['model','vehicleModel'])].filter(x=>x!=='—').join(' ')||'—')+'</td><td>'+safe(val(v,['carrier','carrirer','operator']))+'</td><td>'+safe(val(v,['vehicleType','type','category']))+'</td><td>'+safe(val(v,['productionYear','year','manufactureYear']))+'</td></tr>').join('')+'</tbody></table></div>';}function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(button)button.classList.add('active');if(window.innerWidth<=850){document.body.classList.add('menu-closed');document.body.classList.remove('mobile-menu-open');document.querySelectorAll('#bottomNav button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'")));}if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),180);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();if(id==='baza')loadFleetDatabase(false);if(id==='konto')refreshAccount();if(id==='odjazdy'){loadScheduleRoutes();}}
+function renderFleetDatabase(){const box=document.getElementById('fleetDatabaseTable');if(!box)return;const q=(document.getElementById('fleetDatabaseSearch')?.value||'').trim().toLowerCase();const rows=fleetDatabaseRows.filter(v=>Object.values(v).some(x=>x!=null&&String(x).toLowerCase().includes(q)));if(!rows.length){box.innerHTML='<div class="empty">Brak pojazdów pasujących do wyszukiwania.</div>';return;}const val=(v,keys)=>{for(const k of keys){if(v[k]!=null&&String(v[k]).trim()!=='')return String(v[k]);}return '—';};box.innerHTML='<div class="table-wrap"><table><thead><tr><th>Nr taborowy</th><th>Marka / model</th><th>Przewoźnik</th><th>Typ</th><th>Rok</th></tr></thead><tbody>'+rows.map(v=>'<tr><td><b>#'+safe(val(v,['vehicleCode','fleetNumber','fleet','number']))+'</b></td><td>'+safe([val(v,['brand','make','manufacturer']) ,val(v,['model','vehicleModel'])].filter(x=>x!=='—').join(' ')||'—')+'</td><td>'+safe(val(v,['carrier','carrirer','operator']))+'</td><td>'+safe(val(v,['vehicleType','type','category']))+'</td><td>'+safe(val(v,['productionYear','year','manufactureYear']))+'</td></tr>').join('')+'</tbody></table></div>';}function showSection(id,button){document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');if(button)button.classList.add('active');if(window.innerWidth<=850){document.body.classList.add('menu-closed');document.body.classList.remove('mobile-menu-open');document.querySelectorAll('#bottomNav button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'")));}if(id==='mapa'&&map)setTimeout(()=>map.invalidateSize(),180);if(id==='ulubione')renderFavorites();if(id==='wyjechalo')renderActiveTable();if(id==='baza')loadFleetDatabase(false);if(id==='konto')refreshAccount();if(id==='rozklady'){loadScheduleRoutes();}if(id==='odjazdy'){if(!allStops.length)loadStops();}}
  window.showSection=showSection;
 function toggleMenu(){if(window.innerWidth<=850){document.body.classList.toggle('mobile-menu-open');}else{document.body.classList.toggle('menu-closed');}if(map)setTimeout(()=>map.invalidateSize(),260);}
 function showBottomSection(id,button){showSection(id,button);document.querySelectorAll('#bottomNav button').forEach(b=>b.classList.toggle('active',b===button));}
@@ -588,9 +624,7 @@ async function loadStops(){
    }).addTo(map);
    const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);
    marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,22],className:'stop-label',opacity:1});
-   marker.bindPopup('<div class="stop-popup"><b>'+safe(name)+'</b><div class="small-note">Pobieranie najbliższych odjazdów…</div></div>',{maxWidth:320});
-   marker.on('click',()=>{if(!marker.isPopupOpen())marker.openPopup();});
-   marker.on('popupopen',()=>loadStopDepartures(id,marker,name));
+   marker.on('click',()=>showStopDepartures(id,name));
    stopMarkers[id]=marker;
    created++;
   });
@@ -606,7 +640,20 @@ async function loadStops(){
 function parseStopTime(value){if(!value)return null;const raw=String(value).trim();let date=new Date(raw);if(!isNaN(date.getTime()))return date;const match=raw.match(/(?:T|^)(\d{1,2}):(\d{2})(?::(\d{2}))?/);if(match){date=new Date();date.setHours(Number(match[1]),Number(match[2]),Number(match[3]||0),0);if(date.getTime()<Date.now()-60000)date.setDate(date.getDate()+1);return date;}return null;}
 function stopDepartureMarkup(d){const rawTime=d.estimatedTime||d.estimated_time||d.expectedTime||d.departureTime||d.arrivalTime||d.time||d.theoreticalTime||d.scheduledTime;const dt=parseStopTime(rawTime);const t=dt?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const delay=d.delayInSeconds??d.delay_in_seconds;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(delay==null?'':(delay>0?'+':'')+Math.round(delay/60)+' min');const line=d.routeShortName||d.route||d.routeId||d.route_id||'—';const direction=d.headsign||d.direction||d.destination||'kierunek nieznany';const fleet=d.vehicleCode??d.vehicleId??d.vehicleNumber??d.fleetNumber;return '<div class="departure-row"><span><b>'+safe(line)+'</b> · '+safe(direction)+(fleet!=null&&fleet!==''?'<button type="button" class="departure-fleet" data-departure-vehicle="'+safe(fleet)+'">#'+safe(fleet)+'</button>':'<small class="small-note">pojazd niepodany w danych</small>')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}
 async function loadStopDepartures(id,marker,name){try{const response=await fetch('/api/departures/'+encodeURIComponent(id),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'API odjazdów');const rows=Array.isArray(data.departures)?data.departures:[];const html=rows.length?rows.slice(0,15).map(stopDepartureMarkup).join(''):'<div class="empty">Brak najbliższych odjazdów w aktualnym źródle ZTM.</div>';marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Linia · kierunek · tabor · czas przyjazdu</div>'+html+'</div>');}catch(e){marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Nie udało się pobrać odjazdów: '+safe(e.message)+'</div></div>');}}
-async function showStopDepartures(id,name){const box=document.getElementById('selectedStopDepartures');if(box)box.innerHTML='<div class="empty">Pobieranie odjazdów…</div>';try{const response=await fetch('/api/departures/'+encodeURIComponent(id),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'API odjazdów');const rows=Array.isArray(data.departures)?data.departures:[];const html=rows.length?rows.slice(0,20).map(stopDepartureMarkup).join(''):'<div class="empty">Brak najbliższych odjazdów w aktualnym źródle ZTM.</div>';if(box)box.innerHTML='<h3>'+safe(name)+'</h3><div class="small-note">Linia · kierunek · tabor · czas przyjazdu</div>'+html;}catch(e){if(box)box.innerHTML='<div class="empty">Nie udało się pobrać odjazdów: '+safe(e.message)+'</div>';}}
+async function showStopDepartures(id,name){
+ const overlay=document.getElementById('stopDeparturesOverlay'),box=document.getElementById('stopDeparturesContent');
+ if(!overlay||!box)return;
+ overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');document.body.classList.add('stop-departures-open');
+ box.innerHTML='<div class="stop-card-heading"><div><small>ODJAZDY NA ŻYWO</small><h3>'+safe(name||'Przystanek')+'</h3></div><button type="button" class="stop-card-close" onclick="closeStopDepartures()" aria-label="Zamknij">×</button></div><div class="empty">Pobieranie odjazdów…</div>';
+ try{
+  const response=await fetch('/api/departures/'+encodeURIComponent(id),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'API odjazdów');
+  const rows=Array.isArray(data.departures)?data.departures:[];
+  const html=rows.length?rows.slice(0,20).map(stopDepartureMarkup).join(''):'<div class="empty">Brak najbliższych odjazdów w aktualnym źródle ZTM.</div>';
+  box.innerHTML='<div class="stop-card-heading"><div><small>ODJAZDY NA ŻYWO</small><h3>'+safe(name||'Przystanek')+'</h3></div><button type="button" class="stop-card-close" onclick="closeStopDepartures()" aria-label="Zamknij">×</button></div><div class="small-note">Linia · kierunek · numer taborowy · czas przyjazdu</div>'+html;
+ }catch(e){box.innerHTML='<div class="stop-card-heading"><div><small>ODJAZDY NA ŻYWO</small><h3>'+safe(name||'Przystanek')+'</h3></div><button type="button" class="stop-card-close" onclick="closeStopDepartures()">×</button></div><div class="empty">Nie udało się pobrać odjazdów: '+safe(e.message)+'</div>';}
+}
+function closeStopDepartures(){const overlay=document.getElementById('stopDeparturesOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('stop-departures-open');}
+window.closeStopDepartures=closeStopDepartures;
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
 function getSession(){try{return JSON.parse(localStorage.getItem('transportie-session')||'null');}catch(e){return null;}}
 function showAuthMessage(msg){document.getElementById('authStatus').textContent=msg;}
@@ -618,7 +665,12 @@ async function logoutUser(){const session=getSession();try{if(session?.access_to
 async function updateAdminAccess(){const button=document.getElementById('adminNavButton');if(!button)return;const session=getSession();if(!session?.access_token){button.style.display='none';return;}try{const info=await authRequest('/api/admin/me',null,session.access_token);button.style.display=info.is_owner?'block':'none';if(info.is_owner)loadAdminUsers();}catch(e){button.style.display='none';}}
 async function loadAdminUsers(){const session=getSession(),status=document.getElementById('adminStatus'),box=document.getElementById('adminUsers');if(!session?.access_token){status.textContent='Zaloguj się na konto właściciela.';return;}status.textContent='Pobieranie użytkowników…';try{const data=await authRequest('/api/admin/users',null,session.access_token);status.textContent='Liczba kont: '+data.users.length;box.innerHTML=data.users.map(u=>{const username=safe(u.username||'bez nazwy'),role=u.role||'user';const options=['user','vip','moderator','admin'].map(r=>'<option value="'+r+'" '+(r===role?'selected':'')+'>'+({user:'Użytkownik',vip:'VIP',moderator:'Moderator',admin:'Administrator'}[r])+'</option>').join('');return '<div class="departure-row" style="align-items:center;flex-wrap:wrap"><span><b>'+username+'</b><br><small>'+safe(u.created_at||'')+'</small></span><span style="display:flex;gap:7px;align-items:center"><select data-admin-role="'+safe(u.id)+'" style="width:auto;min-width:135px">'+options+'</select><button class="secondary" data-save-role="'+safe(u.id)+'">Zapisz</button></span></div>';}).join('')||'<div class="empty">Brak kont.</div>';}catch(e){status.textContent=e.message;box.innerHTML='';}}
 async function saveUserRole(userId){const session=getSession(),select=document.querySelector('[data-admin-role="'+CSS.escape(userId)+'"]');if(!session?.access_token||!select)return;const button=document.querySelector('[data-save-role="'+CSS.escape(userId)+'"]');if(button)button.disabled=true;try{await authRequest('/api/admin/users/'+encodeURIComponent(userId)+'/role',{role:select.value},session.access_token);document.getElementById('adminStatus').textContent='Ranga została zmieniona.';await loadAdminUsers();}catch(e){document.getElementById('adminStatus').textContent=e.message;if(button)button.disabled=false;}}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-save-role]');if(b)saveUserRole(b.getAttribute('data-save-role'));});
+document.addEventListener('click',e=>{
+ const role=e.target.closest('[data-save-role]');if(role)saveUserRole(role.getAttribute('data-save-role'));
+ const stop=e.target.closest('[data-stop-select]');if(stop)showStopDepartures(stop.getAttribute('data-stop-select'),stop.getAttribute('data-stop-name'));
+ const route=e.target.closest('[data-schedule-route]');if(route)selectScheduleLine(route.getAttribute('data-schedule-route'));
+ const fleet=e.target.closest('[data-departure-vehicle]');if(fleet){const code=fleet.getAttribute('data-departure-vehicle');const vehicle=vehicles.find(v=>String(v.vehicleCode)===String(code));if(vehicle)openVehicleDetails(vehicle);}
+});
 window.toggleMenu=toggleMenu;window.locateUser=locateUser;window.loginUser=loginUser;window.registerUser=registerUser;window.logoutUser=logoutUser;window.loadAdminUsers=loadAdminUsers;
 function brigadeFor(v){const service=String(v.vehicleService||'');const match=service.match(/-(\d{2})$/);return match?match[1]:'—';}
 function labelFor(v){const parts=[];if(labelSettings.line)parts.push('Linia '+(v.routeShortName||'?'));if(labelSettings.brigade)parts.push('Brygada '+brigadeFor(v));if(labelSettings.fleet)parts.push('Tabor '+(v.vehicleCode||'?'));return parts.join(' · ')||'Pojazd';}
