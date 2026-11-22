@@ -399,6 +399,15 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .stop-popup .small-note{color:#b7c0cc;}
 .stop-popup .departure-row{border-color:#343b46;color:#f5f7fa;}
 .stop-popup .departure-row small{color:#b7c0cc;}
+
+/* Widoczne i klikalne znaczniki przystanków — warstwa nad pojazdami. */
+#map .leaflet-stop-pane{z-index:680!important;pointer-events:auto!important}
+#map .leaflet-div-icon.stop-marker{display:block!important;width:48px!important;height:48px!important;background:transparent!important;border:0!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;cursor:pointer!important}
+#map .leaflet-div-icon.stop-marker .stop-icon{display:grid!important;place-items:center!important;position:absolute!important;inset:2px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:50%!important;background:#009b70!important;border:2px solid #fff!important;color:#fff!important;box-shadow:0 2px 9px rgba(0,0,0,.65)!important;pointer-events:auto!important}
+#map .leaflet-div-icon.stop-marker .stop-icon svg{display:block!important;width:25px!important;height:25px!important;pointer-events:none!important}
+.vehicle-favorite-toggle{position:absolute;top:10px;right:57px;z-index:5;width:36px;height:36px;border:0;border-radius:50%;background:#242a33;color:#ffd34e;font-size:25px;line-height:1;display:grid;place-items:center;cursor:pointer}
+.vehicle-favorite-toggle[aria-pressed="true"]{color:#ffd34e;background:#3b3420}
+.vehicle-detail-close{z-index:6}
 </style>
 </head>
 <body class="menu-closed">
@@ -437,7 +446,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
   <div class="map-search-input-wrap"><span aria-hidden="true">⌕</span><input id="mapVehicleSearch" type="search" placeholder="Szukaj pojazdu: linia, brygada, numer taborowy…" autocomplete="off" oninput="searchMapVehicles()" aria-label="Wyszukiwarka pojazdów na mapie"><button type="button" id="clearMapVehicleSearch" onclick="clearMapVehicleSearch()" aria-label="Wyczyść wyszukiwanie">×</button></div>
   <div id="mapVehicleSearchResults" style="display:none;max-height: min(48vh,360px);overflow-y:auto;margin-top:7px"></div>
  </div>
- <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><button class="vehicle-detail-close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button><div id="vehicleDetailContent"></div></article></div>
+ <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><button class="vehicle-detail-close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button><button class="vehicle-favorite-toggle" type="button" onclick="toggleSelectedVehicleFavorite()" aria-label="Dodaj pojazd do ulubionych" aria-pressed="false" title="Dodaj do ulubionych">☆</button><div id="vehicleDetailContent"></div></article></div>
  <div class="map-layout">
   <div class="surface"><div id="map"></div></div>
   <aside class="map-side">
@@ -512,7 +521,7 @@ let map=null;let allStops=[];let stopRenderer=null;let vehiclesUpdateInFlight=fa
 function initMap(){
  try{
   if(!window.L||map)return;
-  map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([54.3520,18.6466],12);if(!map.getPane('stopsPane')){map.createPane('stopsPane');map.getPane('stopsPane').style.zIndex='625';}L.control.attribution({prefix:'🇵🇱'}).addTo(map);map.whenReady(()=>{if(typeof loadStops==='function')loadStops();});map.on('zoomend',refreshTooltips);map.on('moveend',refreshTooltips);map.on('click',function(event){if(!map)return;const tap=map.latLngToContainerPoint(event.latlng);let nearest=null,nearestDistance=30;Object.entries(stopMarkers).forEach(([id,marker])=>{const point=map.latLngToContainerPoint(marker.getLatLng()),distance=point.distanceTo(tap);if(distance<nearestDistance){nearestDistance=distance;nearest=marker;}});if(nearest)nearest.openPopup();});stopRenderer=L.svg({padding:0.5});
+  map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([54.3520,18.6466],12);if(!map.getPane('stopsPane')){map.createPane('stopsPane');map.getPane('stopsPane').classList.add('leaflet-stop-pane');map.getPane('stopsPane').style.zIndex='680';map.getPane('stopsPane').style.pointerEvents='auto';}L.control.attribution({prefix:'🇵🇱'}).addTo(map);map.whenReady(()=>{if(typeof loadStops==='function')loadStops();});map.on('zoomend',refreshTooltips);map.on('moveend',refreshTooltips);map.on('click',function(event){if(!map)return;const tap=map.latLngToContainerPoint(event.latlng);let nearest=null,nearestDistance=30;Object.entries(stopMarkers).forEach(([id,marker])=>{const point=map.latLngToContainerPoint(marker.getLatLng()),distance=point.distanceTo(tap);if(distance<nearestDistance){nearestDistance=distance;nearest=marker;}});if(nearest)nearest.openPopup();});stopRenderer=L.svg({padding:0.5});
   mapDarkTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19,className:'transportie-dark-tiles'}).addTo(map);
   mapLightTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19});
  }catch(e){console.error('Map init:',e);}
@@ -570,7 +579,7 @@ async function loadStops(){
    if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||lat<53.8||lat>54.8||lon<18||lon>19.2||stopMarkers[id])return;
    const iconHtml='<span class="stop-icon" aria-label="Przystanek autobusowy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
    const marker=L.marker([lat,lon],{
-    pane:'stopsPane',zIndexOffset:1200,keyboard:true,interactive:true,bubblingMouseEvents:true,
+    pane:'stopsPane',zIndexOffset:10000,keyboard:true,interactive:true,bubblingMouseEvents:false,riseOnHover:true,
     icon:L.divIcon({className:'stop-marker',html:iconHtml,iconSize:[48,48],iconAnchor:[24,24]})
    }).addTo(map);
    const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);
@@ -675,6 +684,7 @@ overlay.classList.add('open');
  overlay.setAttribute('aria-hidden','false');
  document.body.classList.add('vehicle-detail-open');
  selectedVehicleCode=String(v.vehicleCode||'');
+ updateVehicleFavoriteButton();
  if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}
  loadVehicleRouteStops(routeId,tripId,selectedVehicleCode,v);
  loadVehicleDuty(routeId,get(v,['vehicleService','vehicle_service','BusServiceName','busServiceName']));
@@ -798,6 +808,10 @@ function getFavorites(){try{return JSON.parse(localStorage.getItem('transportie-
 function saveFavorites(items){localStorage.setItem('transportie-favorites',JSON.stringify([...new Set(items)]));}
 function addFavorite(){const input=document.getElementById('favoriteInput');const code=input.value.trim();if(!code)return;saveFavorites([...getFavorites(),code]);input.value='';renderFavorites();}
 function toggleFavorite(code){if(!code)return;const list=getFavorites();saveFavorites(list.includes(String(code))?list.filter(x=>x!==String(code)):[...list,String(code)]);renderFavorites();}
+function updateVehicleFavoriteButton(){const button=document.querySelector('.vehicle-favorite-toggle');if(!button)return;const code=String(selectedVehicleCode||'');const saved=!!code&&getFavorites().includes(code);button.textContent=saved?'★':'☆';button.setAttribute('aria-pressed',String(saved));button.setAttribute('aria-label',saved?'Usuń pojazd z ulubionych':'Dodaj pojazd do ulubionych');button.title=saved?'Usuń z ulubionych':'Dodaj do ulubionych';}
+function toggleSelectedVehicleFavorite(){if(!selectedVehicleCode)return;toggleFavorite(String(selectedVehicleCode));updateVehicleFavoriteButton();}
+window.toggleSelectedVehicleFavorite=toggleSelectedVehicleFavorite;
+
 function renderFavorites(){const list=getFavorites();const rows=list.map(code=>{const v=vehicles.find(x=>String(x.vehicleCode)===String(code));return '<tr><td><b>'+safe(code)+'</b></td><td>'+safe(v?.routeShortName||'Poza aktualnym GPS')+'</td><td><button class="secondary" data-favorite="'+safe(code)+'">Usuń</button></td></tr>';}).join('');document.getElementById('favoritesTable').innerHTML=list.length?'<div class="table-wrap"><table><thead><tr><th>Tabor</th><th>Linia</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty">Nie masz jeszcze ulubionych pojazdów. Dodaj pierwszy numer powyżej.</div>';}
 function filterLine(){const q=document.getElementById('lineSearch').value.trim().toLowerCase();const rows=vehicles.filter(v=>String(v.routeShortName||'').toLowerCase()===q).slice().sort((a,b)=>String(a.vehicleCode||'').localeCompare(String(b.vehicleCode||''),undefined,{numeric:true}));document.getElementById('lineResults').innerHTML=table(rows,q?'Nie znaleziono pojazdów na tej linii.':'Wpisz numer linii.');}
 window.addFavorite=addFavorite;window.toggleFavorite=toggleFavorite;window.filterLine=filterLine;window.renderActiveTable=renderActiveTable;window.saveLabelSettings=saveLabelSettings;
