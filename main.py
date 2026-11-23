@@ -426,13 +426,13 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .stop-popup .departure-row small{color:#b7c0cc;}
 
 /* Widoczne i klikalne znaczniki przystanków — warstwa nad pojazdami. */
-#map .leaflet-stop-pane{z-index:680!important;pointer-events:auto!important}
-#map .leaflet-div-icon.stop-marker{display:block!important;width:48px!important;height:48px!important;background:transparent!important;border:0!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;cursor:pointer!important}
+#map .leaflet-stop-pane{z-index:680!important;pointer-events:none!important}
+#map .leaflet-div-icon.stop-marker{display:block!important;width:42px!important;height:42px!important;background:transparent!important;border:0!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;cursor:pointer!important;z-index:10000!important}
 #map .leaflet-div-icon.stop-marker .stop-icon{display:grid!important;place-items:center!important;position:absolute!important;inset:2px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:50%!important;background:#009b70!important;border:2px solid #fff!important;color:#fff!important;box-shadow:0 2px 9px rgba(0,0,0,.65)!important;pointer-events:auto!important}
 #map .leaflet-div-icon.stop-marker .stop-icon svg{display:block!important;width:25px!important;height:25px!important;pointer-events:none!important}.vehicle-detail-close{z-index:6}
 
 /* Widoczne, klikalne ikony przystanków — nadpisanie dawnych reguł 10px. */
-.leaflet-stop-pane{z-index:680!important;pointer-events:auto!important}
+.leaflet-stop-pane{z-index:680!important;pointer-events:none!important}
 .leaflet-stop-pane .leaflet-marker-icon.stop-marker{width:42px!important;height:42px!important;margin-left:-21px!important;margin-top:-21px!important;display:grid!important;place-items:center!important;pointer-events:auto!important;opacity:1!important}
 .leaflet-stop-pane .stop-icon{display:grid!important;place-items:center!important;width:34px!important;height:34px!important;border:2px solid #fff!important;border-radius:11px!important;background:#087b55!important;color:#fff!important;box-shadow:0 2px 9px #001b1380!important;font-size:0!important}
 .leaflet-stop-pane .stop-icon svg{display:block!important;width:22px!important;height:22px!important;max-width:none!important;max-height:none!important}
@@ -562,7 +562,7 @@ let map=null;let allStops=[];let stopRenderer=null;let vehiclesUpdateInFlight=fa
 function initMap(){
  try{
   if(!window.L||map)return;
-  map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([54.3520,18.6466],12);if(!map.getPane('stopsPane')){map.createPane('stopsPane');map.getPane('stopsPane').classList.add('leaflet-stop-pane');map.getPane('stopsPane').style.zIndex='680';map.getPane('stopsPane').style.pointerEvents='auto';}L.control.attribution({prefix:'🇵🇱'}).addTo(map);map.whenReady(()=>{if(typeof loadStops==='function')loadStops();});map.on('zoomend',refreshTooltips);map.on('moveend',refreshTooltips);map.on('click',function(event){if(!map)return;const tap=map.latLngToContainerPoint(event.latlng);let nearest=null,nearestDistance=30;Object.entries(stopMarkers).forEach(([id,marker])=>{const point=map.latLngToContainerPoint(marker.getLatLng()),distance=point.distanceTo(tap);if(distance<nearestDistance){nearestDistance=distance;nearest=marker;}});if(nearest)nearest.openPopup();});stopRenderer=L.svg({padding:0.5});
+  map=L.map('map',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([54.3520,18.6466],12);if(!map.getPane('stopsPane')){map.createPane('stopsPane');map.getPane('stopsPane').classList.add('leaflet-stop-pane');map.getPane('stopsPane').style.zIndex='680';map.getPane('stopsPane').style.pointerEvents='none';}L.control.attribution({prefix:'🇵🇱'}).addTo(map);map.whenReady(()=>{if(typeof loadStops==='function')loadStops();});map.on('zoomend',refreshTooltips);map.on('moveend',refreshTooltips);map.on('click',function(event){if(!map)return;const tap=map.latLngToContainerPoint(event.latlng);let nearestId=null,nearest=null,nearestDistance=34;Object.entries(stopMarkers).forEach(([id,marker])=>{const point=map.latLngToContainerPoint(marker.getLatLng()),distance=point.distanceTo(tap);if(distance<nearestDistance){nearestDistance=distance;nearest=marker;nearestId=id;}});if(nearest&&nearestId){const stop=allStops.find(item=>String(item.stopId??item.stop_id??item.id??'')===String(nearestId));showStopDepartures(nearestId,stop?.stopName||stop?.stopDesc||'Przystanek');}});stopRenderer=L.svg({padding:0.5});
   mapDarkTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19,className:'transportie-dark-tiles'}).addTo(map);
   mapLightTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',subdomains:'abc',maxZoom:19});
  }catch(e){console.error('Map init:',e);}
@@ -625,7 +625,7 @@ async function loadStops(){
    }).addTo(map);
    const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);
    marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,22],className:'stop-label',opacity:1});
-   marker.on('click',()=>showStopDepartures(id,name));
+   marker.on('click',event=>{if(event&&event.originalEvent&&window.L)window.L.DomEvent.stopPropagation(event.originalEvent);showStopDepartures(id,name);});
    stopMarkers[id]=marker;
    created++;
   });
