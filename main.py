@@ -40,23 +40,46 @@ _stop_times_cache = {}
 _vehicle_db = {}
 _vehicle_db_loaded_at = 0
 
-# Keep only a small number of route timetables in RAM. Each stopTimes response
-# can contain thousands of rows, so an unbounded per-route cache can exhaust
-# the 512 MB Render instance after users browse many lines.
-_STOP_TIMES_CACHE_MAX_ENTRIES = 2
+# Keep exactly one timetable in RAM on the 512 MB Render instance.
+# The public API returns wide records; only these fields are used by the app.
+_STOP_TIMES_CACHE_MAX_ENTRIES = 1
+_STOP_TIME_FIELDS = {
+    "routeId", "route_id", "tripId", "trip_id", "stopId", "stop_id",
+    "stopSequence", "stop_sequence", "departureTime", "departure_time",
+    "arrivalTime", "arrival_time", "departure", "arrival", "time",
+    "busServiceName", "bus_service_name", "vehicleService",
+    "vehicle_service", "order",
+}
+_STOPS_IN_TRIPS_FIELDS = {
+    "routeId", "route_id", "tripId", "trip_id", "stopId", "stop_id",
+    "stopSequence", "stop_sequence", "passenger",
+}
+
+
+def _trim_records_in_place(records, allowed_fields):
+    """Drop unused columns without retaining a second copy of large GTFS feeds."""
+    if not isinstance(records, list):
+        return []
+    write_index = 0
+    for row in records:
+        if not isinstance(row, dict):
+            continue
+        for field in tuple(row):
+            if field not in allowed_fields:
+                row.pop(field, None)
+        records[write_index] = row
+        write_index += 1
+    del records[write_index:]
+    return records
 
 
 def _store_stop_times_cache(cache_key, records):
+    records = _trim_records_in_place(records, _STOP_TIME_FIELDS)
+    _stop_times_cache.clear()
     _stop_times_cache[cache_key] = {
         "loaded_at": time.time(),
-        "records": records if isinstance(records, list) else [],
+        "records": records,
     }
-    while len(_stop_times_cache) > _STOP_TIMES_CACHE_MAX_ENTRIES:
-        oldest_key = min(
-            _stop_times_cache,
-            key=lambda key: _stop_times_cache[key].get("loaded_at", 0),
-        )
-        _stop_times_cache.pop(oldest_key, None)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -1343,8 +1366,10 @@ async def get_stops(refresh: bool = False):
         # wewnątrz którego znajduje się tablica "stops".
         records = []
         queue = [raw]
-        while queue:
-            node = queue.pop(0)
+        queue_index = 0
+        while queue_index < len(queue):
+            node = queue[queue_index]
+            queue_index += 1
             if isinstance(node, list):
                 if node and all(isinstance(x, dict) for x in node):
                     # Tablica rekordów przystanków.
@@ -1430,7 +1455,7 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                         ]
                         if dated:
                             records = sorted(dated, key=lambda entry: entry[0])[-1][1]
-                _stops_in_trips_cache = records if isinstance(records, list) else []
+                _stops_in_trips_cache = _trim_records_in_place(records, _STOPS_IN_TRIPS_FIELDS)
                 _stops_in_trips_loaded_at = time.time()
 
             if not _stops_cache or time.time() - _stops_loaded_at > 86400:
