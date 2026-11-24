@@ -478,7 +478,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .stop-departures-card .departure-row-clickable{cursor:pointer;transition:background .15s ease,border-color .15s ease}
 .stop-departures-card .departure-row-clickable:hover,.stop-departures-card .departure-row-clickable:focus-visible{background:#202a27!important;border-color:#087e55!important;outline:2px solid #087e55;outline-offset:1px}
 .stop-departures-card .departure-fleet{display:inline-block;cursor:inherit}
-@media(max-width:850px){input,select,textarea,button{font-size:16px!important}input,select,textarea{touch-action:manipulation}}
+@media(max-width:850px){input,select,textarea,button,.map-search-input-wrap input{font-size:16px!important}input,select,textarea{touch-action:manipulation}}
 
 </style>
 </head>
