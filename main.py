@@ -1463,10 +1463,6 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                 _stops_in_trips_cache = _trim_records_in_place(records, _STOPS_IN_TRIPS_FIELDS)
                 _stops_in_trips_loaded_at = time.time()
 
-            rows = _trim_records_in_place(rows, _STOP_TIME_FIELDS)
-            # The endpoint is requested for one line; discard any unrelated rows
-            # before building grouped courses and retaining intermediate objects.
-            rows = [row for row in rows if str(row.get("routeId", row.get("route_id", route_id))) == str(route_id)]
             if not _stops_cache or time.time() - _stops_loaded_at > 86400:
                 stops_response = await client.get(STOPS_URL)
                 stops_response.raise_for_status()
@@ -1908,6 +1904,9 @@ async def get_line_schedule(route_id: str):
                             rows = value.get("stopTimes") or value.get("stop_times") or value.get("results") or []
                             if rows:
                                 break
+            rows = _trim_records_in_place(rows, _STOP_TIME_FIELDS)
+            # Keep only this line before constructing grouped courses.
+            rows = [row for row in rows if str(row.get("routeId", row.get("route_id", route_id))) == str(route_id)]
             if not _stops_cache or time.time() - _stops_loaded_at > 86400:
                 stop_response = await client.get(STOPS_URL)
                 stop_response.raise_for_status()
