@@ -469,6 +469,17 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .stop-departures-card .departure-row>span:last-child{flex:none;min-width:82px}
 @media(min-width:700px){.stop-departures-card{height:62vh;min-height:320px;max-height:88vh}}
 @media(max-width:850px){input,select,textarea{font-size:16px!important}}
+
+/* Drobniejsze znaczniki przystanków, prostokątne kafle odjazdów i brak zoomu przy polach na telefonach. */
+.leaflet-stop-pane .leaflet-marker-icon.stop-marker{width:26px!important;height:26px!important;margin-left:-13px!important;margin-top:-13px!important}
+.leaflet-stop-pane .stop-icon{width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;border-radius:6px!important}
+.leaflet-stop-pane .stop-icon svg{width:14px!important;height:14px!important}
+.stop-departures-card .departure-row{border-radius:5px!important}
+.stop-departures-card .departure-row-clickable{cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.stop-departures-card .departure-row-clickable:hover,.stop-departures-card .departure-row-clickable:focus-visible{background:#202a27!important;border-color:#087e55!important;outline:2px solid #087e55;outline-offset:1px}
+.stop-departures-card .departure-fleet{display:inline-block;cursor:inherit}
+@media(max-width:850px){input,select,textarea,button{font-size:16px!important}input,select,textarea{touch-action:manipulation}}
+
 </style>
 </head>
 <body class="menu-closed">
@@ -671,7 +682,7 @@ async function loadStops(){
  }finally{stopsLoading=false;}
 }
 function parseStopTime(value){if(!value)return null;const raw=String(value).trim();let date=new Date(raw);if(!isNaN(date.getTime()))return date;const match=raw.match(/(?:T|^)(\d{1,2}):(\d{2})(?::(\d{2}))?/);if(match){date=new Date();date.setHours(Number(match[1]),Number(match[2]),Number(match[3]||0),0);if(date.getTime()<Date.now()-60000)date.setDate(date.getDate()+1);return date;}return null;}
-function stopDepartureMarkup(d){const rawTime=d.estimatedTime||d.estimated_time||d.expectedTime||d.departureTime||d.arrivalTime||d.time||d.theoreticalTime||d.scheduledTime;const dt=parseStopTime(rawTime);const t=dt?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const delay=d.delayInSeconds??d.delay_in_seconds;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(delay==null?'':(delay>0?'+':'')+Math.round(delay/60)+' min');const line=d.routeShortName||d.route||d.routeId||d.route_id||'—';const direction=d.headsign||d.direction||d.destination||'kierunek nieznany';const fleet=d.vehicleCode??d.vehicleId??d.vehicleNumber??d.fleetNumber;return '<div class="departure-row"><span><b>'+safe(line)+'</b> · '+safe(direction)+(fleet!=null&&fleet!==''?'<button type="button" class="departure-fleet" data-departure-vehicle="'+safe(fleet)+'">#'+safe(fleet)+'</button>':'<small class="small-note">pojazd niepodany w danych</small>')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}
+function stopDepartureMarkup(d){const rawTime=d.estimatedTime||d.estimated_time||d.expectedTime||d.departureTime||d.arrivalTime||d.time||d.theoreticalTime||d.scheduledTime;const dt=parseStopTime(rawTime);const t=dt?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const delay=d.delayInSeconds??d.delay_in_seconds;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(delay==null?'':(delay>0?'+':'')+Math.round(delay/60)+' min');const line=d.routeShortName||d.route||d.routeId||d.route_id||'—';const direction=d.headsign||d.direction||d.destination||'kierunek nieznany';const fleet=d.vehicleCode??d.vehicleId??d.vehicleNumber??d.fleetNumber;const clickable=fleet!=null&&fleet!=='';return '<div class="departure-row'+(clickable?' departure-row-clickable':'')+'"'+(clickable?' role="button" tabindex="0" data-departure-vehicle="'+safe(fleet)+'" aria-label="Pokaż pojazd '+safe(fleet)+' na mapie"':'')+'><span><b>'+safe(line)+'</b> · '+safe(direction)+(clickable?'<span class="departure-fleet" aria-hidden="true">#'+safe(fleet)+'</span>':'<small class="small-note">pojazd niepodany w danych</small>')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}
 async function loadStopDepartures(id,marker,name){try{const response=await fetch('/api/departures/'+encodeURIComponent(id),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'API odjazdów');const rows=Array.isArray(data.departures)?data.departures:[];const html=rows.length?rows.slice(0,15).map(stopDepartureMarkup).join(''):'<div class="empty">Brak najbliższych odjazdów w aktualnym źródle ZTM.</div>';marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Linia · kierunek · tabor · czas przyjazdu</div>'+html+'</div>');}catch(e){marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Nie udało się pobrać odjazdów: '+safe(e.message)+'</div></div>');}}
 async function showStopDepartures(id,name){
  const overlay=document.getElementById('stopDeparturesOverlay'),box=document.getElementById('stopDeparturesContent');
