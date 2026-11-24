@@ -437,6 +437,20 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .leaflet-stop-pane .stop-icon{display:grid!important;place-items:center!important;width:34px!important;height:34px!important;border:2px solid #fff!important;border-radius:11px!important;background:#087b55!important;color:#fff!important;box-shadow:0 2px 9px #001b1380!important;font-size:0!important}
 .leaflet-stop-pane .stop-icon svg{display:block!important;width:22px!important;height:22px!important;max-width:none!important;max-height:none!important}
 .leaflet-stop-pane .leaflet-tooltip.stop-label{z-index:690!important;white-space:nowrap!important;pointer-events:none!important}
+/* Poprawki kart przystanków i stabilności dotyku na telefonach */
+.leaflet-stop-pane .leaflet-marker-icon.stop-marker{width:36px!important;height:36px!important;margin-left:-18px!important;margin-top:-18px!important;cursor:pointer!important;pointer-events:auto!important}
+.leaflet-stop-pane .stop-icon{width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;border-radius:9px!important}
+.leaflet-stop-pane .stop-icon svg{width:19px!important;height:19px!important}
+.stop-departures-card{height:68dvh;min-height:34dvh;max-height:92dvh;overflow:hidden;display:flex;flex-direction:column;touch-action:pan-y}
+.stop-departures-grabber{position:relative;flex:none;width:44px;height:5px;margin:0 auto 14px;border-radius:9px;background:#777;cursor:ns-resize;touch-action:none}
+.stop-departures-grabber:before{content:"";position:absolute;inset:-12px -20px}
+#stopDeparturesContent{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.stop-departures-card .stop-card-heading{position:sticky;top:0;background:#111;z-index:2;padding:2px 0 8px}
+.stop-departures-card .departure-row{align-items:center}
+.stop-departures-card .departure-row>span:first-child{min-width:0;flex:1}
+.stop-departures-card .departure-row>span:last-child{flex:none;min-width:82px}
+@media(min-width:700px){.stop-departures-card{height:62vh;min-height:320px;max-height:88vh}}
+@media(max-width:850px){input,select,textarea{font-size:16px!important}}
 </style>
 </head>
 <body class="menu-closed">
@@ -477,7 +491,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
   <div class="map-search-input-wrap"><span aria-hidden="true">⌕</span><input id="mapVehicleSearch" type="search" placeholder="Szukaj pojazdu: linia, brygada, numer taborowy…" autocomplete="off" oninput="searchMapVehicles()" aria-label="Wyszukiwarka pojazdów na mapie"><button type="button" id="clearMapVehicleSearch" onclick="clearMapVehicleSearch()" aria-label="Wyczyść wyszukiwanie">×</button></div>
   <div id="mapVehicleSearchResults" style="display:none;max-height: min(48vh,360px);overflow-y:auto;margin-top:7px"></div>
  </div>
- <div id="stopDeparturesOverlay" class="stop-departures-overlay" aria-hidden="true"><div class="stop-departures-backdrop" onclick="closeStopDepartures()"></div><article id="stopDeparturesContent" class="stop-departures-card" role="dialog" aria-modal="true" aria-label="Odjazdy z przystanku"></article></div>
+ <div id="stopDeparturesOverlay" class="stop-departures-overlay" aria-hidden="true"><div class="stop-departures-backdrop" onclick="closeStopDepartures()"></div><article class="stop-departures-card" role="dialog" aria-modal="true" aria-label="Odjazdy z przystanku"><div class="stop-departures-grabber" aria-label="Przeciągnij, aby zmienić wysokość karty"></div><div id="stopDeparturesContent"></div></article></div>
   <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><button class="vehicle-favorite-toggle vehicle-detail-favorite" id="vehicleDetailFavorite" type="button" onclick="toggleSelectedVehicleFavorite()" aria-label="Dodaj pojazd do ulubionych">☆</button><button class="vehicle-detail-close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button><div id="vehicleDetailContent"></div></article></div>
  <div class="map-layout">
   <div class="surface"><div id="map"></div></div>
@@ -621,7 +635,7 @@ async function loadStops(){
    const iconHtml='<span class="stop-icon" aria-label="Przystanek autobusowy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
    const marker=L.marker([lat,lon],{
     pane:'stopsPane',zIndexOffset:10000,keyboard:true,interactive:true,bubblingMouseEvents:false,riseOnHover:true,
-    icon:L.divIcon({className:'stop-marker',html:iconHtml,iconSize:[48,48],iconAnchor:[24,24]})
+    icon:L.divIcon({className:'stop-marker',html:iconHtml,iconSize:[36,36],iconAnchor:[18,18]})
    }).addTo(map);
    const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);
    marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,22],className:'stop-label',opacity:1});
@@ -655,6 +669,26 @@ async function showStopDepartures(id,name){
 }
 function closeStopDepartures(){const overlay=document.getElementById('stopDeparturesOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('stop-departures-open');}
 window.closeStopDepartures=closeStopDepartures;
+function initStopCardResizing(){
+ const handle=document.querySelector('.stop-departures-grabber');
+ const card=document.querySelector('.stop-departures-card');
+ if(!handle||!card||handle.dataset.ready==='1')return;
+ handle.dataset.ready='1';
+ let startY=0,startHeight=0,dragging=false;
+ handle.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse'&&event.button!==0)return;
+  dragging=true;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
+  handle.setPointerCapture(event.pointerId);event.preventDefault();
+ });
+ handle.addEventListener('pointermove',event=>{
+  if(!dragging)return;
+  const next=Math.max(240,Math.min(window.innerHeight*.92,startHeight+startY-event.clientY));
+  card.style.height=next+'px';
+ });
+ const stop=event=>{if(!dragging)return;dragging=false;try{handle.releasePointerCapture(event.pointerId);}catch(_){} };
+ handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
+}
+initStopCardResizing();
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
 function getSession(){try{return JSON.parse(localStorage.getItem('transportie-session')||'null');}catch(e){return null;}}
 function showAuthMessage(msg){document.getElementById('authStatus').textContent=msg;}
