@@ -40,6 +40,24 @@ _stop_times_cache = {}
 _vehicle_db = {}
 _vehicle_db_loaded_at = 0
 
+# Keep only a small number of route timetables in RAM. Each stopTimes response
+# can contain thousands of rows, so an unbounded per-route cache can exhaust
+# the 512 MB Render instance after users browse many lines.
+_STOP_TIMES_CACHE_MAX_ENTRIES = 2
+
+
+def _store_stop_times_cache(cache_key, records):
+    _stop_times_cache[cache_key] = {
+        "loaded_at": time.time(),
+        "records": records if isinstance(records, list) else [],
+    }
+    while len(_stop_times_cache) > _STOP_TIMES_CACHE_MAX_ENTRIES:
+        oldest_key = min(
+            _stop_times_cache,
+            key=lambda key: _stop_times_cache[key].get("loaded_at", 0),
+        )
+        _stop_times_cache.pop(oldest_key, None)
+
 
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -1496,8 +1514,8 @@ async def get_vehicle_route(route_id: str, trip_id: str, lat: float = None, lon:
                         last_error = fetch_error
                 if not schedule_records and last_error:
                     raise last_error
-                cached = {"loaded_at": time.time(), "records": schedule_records}
-                _stop_times_cache[cache_key] = cached
+                _store_stop_times_cache(cache_key, schedule_records)
+                cached = _stop_times_cache[cache_key]
 
             schedule_rows = [item for item in cached.get("records", []) if isinstance(item, dict)]
             schedule_row_count = len(schedule_rows)
@@ -1724,9 +1742,8 @@ async def get_vehicle_duty(route_id: str, vehicle_service: str):
                                                     value.get("results") or [])
                                 if schedule_records:
                                     break
-                cached = {"loaded_at": time.time(),
-                          "records": schedule_records if isinstance(schedule_records, list) else []}
-                _stop_times_cache[cache_key] = cached
+                _store_stop_times_cache(cache_key, schedule_records)
+                cached = _stop_times_cache[cache_key]
         def norm(value):
             return str(value).strip().replace(".0", "") if value is not None else ""
         wanted_service = norm(vehicle_service)
