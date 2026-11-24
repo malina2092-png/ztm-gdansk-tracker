@@ -508,11 +508,19 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .stop-departures-card .departure-fleet{display:inline-block;cursor:inherit}
 @media(max-width:850px){input,select,textarea,button,.map-search-input-wrap input{font-size:16px!important}input,select,textarea{touch-action:manipulation}}
 
+
+/* Poprawki interfejsu: małe kropki przystanków, widoczny X karty, bez gwiazdki na mapie. */
+#mapTools{display:none!important}
+#map .leaflet-marker-icon.stop-marker,#map .leaflet-div-icon.stop-marker{width:14px!important;height:14px!important;margin-left:-7px!important;margin-top:-7px!important;display:grid!important;place-items:center!important;overflow:visible!important;padding:0!important}
+#map .leaflet-marker-icon.stop-marker .stop-icon,#map .leaflet-div-icon.stop-marker .stop-icon{position:static!important;inset:auto!important;display:block!important;width:10px!important;height:10px!important;min-width:10px!important;min-height:10px!important;border:1px solid #fff!important;border-radius:50%!important;background:#07996d!important;box-shadow:0 1px 4px rgba(0,0,0,.65)!important;padding:0!important}
+#map .leaflet-marker-icon.stop-marker .stop-icon svg,#map .leaflet-div-icon.stop-marker .stop-icon svg{display:none!important}
+.vehicle-detail-close{position:absolute!important;z-index:20!important;top:10px!important;right:12px!important;width:38px!important;height:38px!important;display:grid!important;place-items:center!important;border-radius:50%!important;background:#07951d!important;color:#fff!important;font-size:29px!important;line-height:1!important;box-shadow:0 2px 8px rgba(0,0,0,.35)!important}
+.vehicle-detail-head{padding-right:58px!important}
 </style>
 </head>
 <body class="menu-closed">
 <button id="menuToggle" onclick="toggleMenu()" aria-label="Otwórz lub zamknij menu">☰</button>\n
-<div id="mapTools" aria-label="Ulubione pojazdy na mapie"><button type="button" onclick="showSection('ulubione',document.querySelector('nav button[onclick*=ulubione]'))" aria-label="Ulubione pojazdy" title="Ulubione">★</button></div>
+
 <div id="mapZoom" aria-label="Przybliżenie mapy"><button type="button" onclick="zoomMap(1)" aria-label="Przybliż">+</button><button type="button" onclick="zoomMap(-1)" aria-label="Oddal">−</button></div>
 <button id="myLocation" onclick="locateUser()" aria-label="Pokaż moją lokalizację"><span class="loc-icon" aria-hidden="true"><svg viewBox="0 0 32 32" width="27" height="27" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="9" stroke="currentColor" stroke-width="2.2"/><circle cx="16" cy="16" r="3.2" fill="currentColor"/><path d="M16 2.5v6M16 23.5v6M2.5 16h6M23.5 16h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span></button>
 <header>
