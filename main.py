@@ -540,6 +540,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .stop-marker{background:transparent!important;border:0!important;width:12px!important;height:12px!important}
 .stop-icon{display:block;width:8px;height:8px;border-radius:50%;background:#00a65a;border:1.5px solid #d8ffe7;box-shadow:0 0 0 1px #075b36,0 1px 3px #0008;font-size:0}
 .leaflet-tooltip.stop-label{display:none!important}
+
+/* Ukryj przyciski mapy pod otwartymi kartami pojazdu i odjazdów. */
+body.vehicle-detail-open #mapZoom,
+body.vehicle-detail-open #myLocation,
+body.stop-departures-open #mapZoom,
+body.stop-departures-open #myLocation {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 </style>
 </head>
 <body class="menu-closed">
@@ -2128,14 +2138,3 @@ async def get_departures(stop_id: str):
         return {"lastUpdate": last_update, "departures": normalized[:30], "count": len(normalized)}
     except Exception as error:
         return JSONResponse(status_code=502, content={"departures": [], "error": str(error)[:240]})
-
-
-/* Ukryj przyciski mapy pod otwartymi kartami pojazdu i odjazdów. */
-body.vehicle-detail-open #mapZoom,
-body.vehicle-detail-open #myLocation,
-body.stop-departures-open #mapZoom,
-body.stop-departures-open #myLocation {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
