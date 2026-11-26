@@ -754,6 +754,30 @@ function initStopCardResizing(){
  handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
 }
 initStopCardResizing();
+function initVehicleCardResizing(){
+ const handle=document.querySelector('.vehicle-detail-grabber');
+ const card=document.querySelector('.vehicle-detail-card');
+ if(!handle||!card||handle.dataset.ready==='1')return;
+ handle.dataset.ready='1';
+ handle.style.touchAction='none';
+ handle.style.cursor='ns-resize';
+ let startY=0,startHeight=0,dragging=false;
+ handle.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse'&&event.button!==0)return;
+  dragging=true;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
+  handle.setPointerCapture(event.pointerId);event.preventDefault();
+ });
+ handle.addEventListener('pointermove',event=>{
+  if(!dragging)return;
+  const minHeight=Math.min(350,window.innerHeight*.45);
+  const next=Math.max(minHeight,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
+  card.style.height=next+'px';
+  card.style.maxHeight='94dvh';
+ });
+ const stop=event=>{if(!dragging)return;dragging=false;try{handle.releasePointerCapture(event.pointerId);}catch(_){}};
+ handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
+}
+initVehicleCardResizing();
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
 function getSession(){try{return JSON.parse(localStorage.getItem('transportie-session')||'null');}catch(e){return null;}}
 function showAuthMessage(msg){document.getElementById('authStatus').textContent=msg;}
