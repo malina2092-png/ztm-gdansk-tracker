@@ -516,6 +516,12 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 #map .leaflet-marker-icon.stop-marker .stop-icon svg,#map .leaflet-div-icon.stop-marker .stop-icon svg{display:none!important}
 .vehicle-detail-close{position:absolute!important;z-index:20!important;top:10px!important;right:12px!important;width:38px!important;height:38px!important;display:grid!important;place-items:center!important;border-radius:50%!important;background:#07951d!important;color:#fff!important;font-size:29px!important;line-height:1!important;box-shadow:0 2px 8px rgba(0,0,0,.35)!important}
 .vehicle-detail-head{padding-right:58px!important}
+
+/* Uchwyt karty pojazdu: większy obszar dotykowy na telefonach. */
+@media(max-width:520px){
+ .vehicle-detail-grabber{height:28px!important;min-height:28px!important;width:100%!important;margin:0 auto 8px!important;position:relative!important;display:block!important;touch-action:none!important;cursor:ns-resize!important;pointer-events:auto!important;background:transparent!important}
+ .vehicle-detail-grabber:after{content:"";position:absolute;left:50%;top:11px;transform:translateX(-50%);width:44px;height:4px;border-radius:8px;background:#777}
+}
 </style>
 </head>
 <body class="menu-closed">
@@ -2100,8 +2106,3 @@ async def get_departures(stop_id: str):
         return {"lastUpdate": last_update, "departures": normalized[:30], "count": len(normalized)}
     except Exception as error:
         return JSONResponse(status_code=502, content={"departures": [], "error": str(error)[:240]})
-/* Uchwyt karty pojazdu ma większy obszar dotykowy, żeby dało się go pewnie złapać na telefonie. */
-@media(max-width:520px){
- .vehicle-detail-grabber{height:24px!important;min-height:24px!important;width:100%!important;margin:-6px auto 8px!important;position:relative!important;display:block!important;touch-action:none!important;cursor:ns-resize!important;pointer-events:auto!important;background:transparent!important}
- .vehicle-detail-grabber:after{content:"";position:absolute;left:50%;top:10px;transform:translateX(-50%);width:42px;height:4px;border-radius:8px;background:#777}
-}
