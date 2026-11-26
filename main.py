@@ -761,21 +761,38 @@ function initVehicleCardResizing(){
  handle.dataset.ready='1';
  handle.style.touchAction='none';
  handle.style.cursor='ns-resize';
- let startY=0,startHeight=0,dragging=false;
- handle.addEventListener('pointerdown',event=>{
-  if(event.pointerType==='mouse'&&event.button!==0)return;
-  dragging=true;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
-  handle.setPointerCapture(event.pointerId);event.preventDefault();
- });
- handle.addEventListener('pointermove',event=>{
-  if(!dragging)return;
+ handle.style.position='relative';
+ handle.style.height='24px';
+ handle.style.minHeight='24px';
+ handle.style.margin='-6px auto 8px';
+ handle.style.width='100%';
+ handle.style.display='block';
+ handle.style.pointerEvents='auto';
+ let startY=0,startHeight=0,dragging=false,pointerId=null;
+ const move=event=>{
+  if(!dragging|| (pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
+  if(event.cancelable)event.preventDefault();
   const minHeight=Math.min(350,window.innerHeight*.45);
   const next=Math.max(minHeight,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
   card.style.height=next+'px';
   card.style.maxHeight='94dvh';
+ };
+ const stop=event=>{
+  if(!dragging)return;
+  dragging=false;
+  try{if(pointerId!==null&&handle.hasPointerCapture(pointerId))handle.releasePointerCapture(pointerId);}catch(_){}
+  pointerId=null;
+ };
+ handle.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse'&&event.button!==0)return;
+  dragging=true;pointerId=event.pointerId;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
+  try{handle.setPointerCapture(pointerId);}catch(_){}
+  if(event.cancelable)event.preventDefault();
  });
- const stop=event=>{if(!dragging)return;dragging=false;try{handle.releasePointerCapture(event.pointerId);}catch(_){}};
- handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
+ handle.addEventListener('pointermove',move);
+ document.addEventListener('pointermove',move,{passive:false});
+ document.addEventListener('pointerup',stop);
+ document.addEventListener('pointercancel',stop);
 }
 initVehicleCardResizing();
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
@@ -2083,3 +2100,8 @@ async def get_departures(stop_id: str):
         return {"lastUpdate": last_update, "departures": normalized[:30], "count": len(normalized)}
     except Exception as error:
         return JSONResponse(status_code=502, content={"departures": [], "error": str(error)[:240]})
+/* Uchwyt karty pojazdu ma większy obszar dotykowy, żeby dało się go pewnie złapać na telefonie. */
+@media(max-width:520px){
+ .vehicle-detail-grabber{height:24px!important;min-height:24px!important;width:100%!important;margin:-6px auto 8px!important;position:relative!important;display:block!important;touch-action:none!important;cursor:ns-resize!important;pointer-events:auto!important;background:transparent!important}
+ .vehicle-detail-grabber:after{content:"";position:absolute;left:50%;top:10px;transform:translateX(-50%);width:42px;height:4px;border-radius:8px;background:#777}
+}
