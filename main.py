@@ -498,6 +498,9 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 @media(min-width:700px){.stop-departures-card{height:62vh;min-height:320px;max-height:88vh}}
 @media(max-width:850px){input,select,textarea{font-size:16px!important}}
 
+/* Dragowanie kart także po nagłówku, nie tylko po małym uchwycie. */
+.stop-card-heading,.vehicle-detail-head,.vehicle-detail-meta{touch-action:none;cursor:ns-resize}
+.stop-card-heading button,.vehicle-detail-head button{touch-action: manipulation;cursor:pointer}
 /* Panele przewijane i rozsuwane jak w czynaczas — gest na uchwycie zmienia wysokość, gest w treści przewija zawartość. */
 .vehicle-detail-card{height:53dvh;max-height:94dvh;min-height:38dvh;overflow:hidden;display:flex;flex-direction:column;touch-action:pan-y}
 #vehicleDetailContent{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin}
@@ -755,60 +758,70 @@ async function showStopDepartures(id,name){
 function closeStopDepartures(){const overlay=document.getElementById('stopDeparturesOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('stop-departures-open');}
 window.closeStopDepartures=closeStopDepartures;
 function initStopCardResizing(){
- const handle=document.querySelector('.stop-departures-grabber');
  const card=document.querySelector('.stop-departures-card');
- if(!handle||!card||handle.dataset.ready==='1')return;
- handle.dataset.ready='1';handle.style.touchAction='none';
- let startY=0,startHeight=0,dragging=false,pointerId=null;
+ if(!card||card.dataset.dragReady==='1')return;
+ card.dataset.dragReady='1';
+ const handles=[card.querySelector('.stop-departures-grabber'),card.querySelector('.stop-card-heading')].filter(Boolean);
+ let startY=0,startHeight=0,dragging=false,moved=false,pointerId=null,activeHandle=null;
  const move=event=>{
   if(!dragging||(pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
+  if(Math.abs(event.clientY-startY)>4)moved=true;
+  if(!moved)return;
   if(event.cancelable)event.preventDefault();
   const next=Math.max(window.innerHeight*.38,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
   card.style.height=next+'px';card.style.maxHeight='94dvh';
  };
  const stop=event=>{
   if(!dragging)return;dragging=false;
-  try{if(pointerId!==null&&handle.hasPointerCapture(pointerId))handle.releasePointerCapture(pointerId);}catch(_){}
-  pointerId=null;
+  try{if(pointerId!==null&&activeHandle&&activeHandle.hasPointerCapture(pointerId))activeHandle.releasePointerCapture(pointerId);}catch(_){}
+  pointerId=null;activeHandle=null;
  };
- handle.addEventListener('pointerdown',event=>{
-  if(event.pointerType==='mouse'&&event.button!==0)return;
-  dragging=true;pointerId=event.pointerId;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
-  try{handle.setPointerCapture(pointerId);}catch(_){}
-  if(event.cancelable)event.preventDefault();
+ handles.forEach(handle=>{
+  handle.style.touchAction='none';handle.style.cursor='ns-resize';
+  handle.addEventListener('pointerdown',event=>{
+   if(event.pointerType==='mouse'&&event.button!==0)return;
+   if(event.target.closest('button,a,input,select,textarea'))return;
+   dragging=true;moved=false;activeHandle=handle;pointerId=event.pointerId;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
+   try{handle.setPointerCapture(pointerId);}catch(_){}
+  });
  });
- handle.addEventListener('pointermove',move);
  document.addEventListener('pointermove',move,{passive:false});
  document.addEventListener('pointerup',stop);document.addEventListener('pointercancel',stop);
 }
 initStopCardResizing();
+initStopCardResizing();
 function initVehicleCardResizing(){
- const handle=document.querySelector('.vehicle-detail-grabber');
  const card=document.querySelector('.vehicle-detail-card');
- if(!handle||!card||handle.dataset.ready==='1')return;
- handle.dataset.ready='1';handle.style.touchAction='none';handle.style.cursor='ns-resize';
- let startY=0,startHeight=0,dragging=false,pointerId=null;
+ if(!card||card.dataset.dragReady==='1')return;
+ card.dataset.dragReady='1';
+ const handles=[card.querySelector('.vehicle-detail-grabber'),card.querySelector('.vehicle-detail-head'),card.querySelector('.vehicle-detail-meta')].filter(Boolean);
+ let startY=0,startHeight=0,dragging=false,moved=false,pointerId=null,activeHandle=null;
  const move=event=>{
   if(!dragging||(pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
+  if(Math.abs(event.clientY-startY)>4)moved=true;
+  if(!moved)return;
   if(event.cancelable)event.preventDefault();
   const next=Math.max(window.innerHeight*.38,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
   card.style.height=next+'px';card.style.maxHeight='94dvh';
  };
  const stop=event=>{
   if(!dragging)return;dragging=false;
-  try{if(pointerId!==null&&handle.hasPointerCapture(pointerId))handle.releasePointerCapture(pointerId);}catch(_){}
-  pointerId=null;
+  try{if(pointerId!==null&&activeHandle&&activeHandle.hasPointerCapture(pointerId))activeHandle.releasePointerCapture(pointerId);}catch(_){}
+  pointerId=null;activeHandle=null;
  };
- handle.addEventListener('pointerdown',event=>{
-  if(event.pointerType==='mouse'&&event.button!==0)return;
-  dragging=true;pointerId=event.pointerId;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
-  try{handle.setPointerCapture(pointerId);}catch(_){}
-  if(event.cancelable)event.preventDefault();
+ handles.forEach(handle=>{
+  handle.style.touchAction='none';handle.style.cursor='ns-resize';
+  handle.addEventListener('pointerdown',event=>{
+   if(event.pointerType==='mouse'&&event.button!==0)return;
+   if(event.target.closest('button,a,input,select,textarea'))return;
+   dragging=true;moved=false;activeHandle=handle;pointerId=event.pointerId;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
+   try{handle.setPointerCapture(pointerId);}catch(_){}
+  });
  });
- handle.addEventListener('pointermove',move);
  document.addEventListener('pointermove',move,{passive:false});
  document.addEventListener('pointerup',stop);document.addEventListener('pointercancel',stop);
 }
+initVehicleCardResizing();
 initVehicleCardResizing();
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
 function getSession(){try{return JSON.parse(localStorage.getItem('transportie-session')||'null');}catch(e){return null;}}
