@@ -550,6 +550,17 @@ body.stop-departures-open #myLocation {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+/* Rozszerzanie kart gestem z całej powierzchni — z zachowaniem przewijania listy przystanków. */
+.vehicle-detail-card,.stop-departures-card{touch-action:none;will-change:height;overscroll-behavior:contain}
+.vehicle-detail-card.sheet-dragging,.stop-departures-card.sheet-dragging{user-select:none}
+.vehicle-detail-stops,.course-stops{touch-action:pan-y!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.vehicle-detail-card{border-radius:22px 22px 0 0!important}
+@media(max-width:700px){
+ .vehicle-detail-overlay{padding:0!important}
+ .vehicle-detail-card{width:100%!important;max-height:94dvh!important;padding:18px 16px calc(22px + env(safe-area-inset-bottom))!important}
+ .stop-departures-card{width:100%!important;max-height:94dvh!important;border-radius:22px 22px 0 0!important}
+}
 </style>
 </head>
 <body class="menu-closed">
@@ -767,71 +778,46 @@ async function showStopDepartures(id,name){
 }
 function closeStopDepartures(){const overlay=document.getElementById('stopDeparturesOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('stop-departures-open');}
 window.closeStopDepartures=closeStopDepartures;
-function initStopCardResizing(){
- const card=document.querySelector('.stop-departures-card');
+function initBottomSheetDrag(selector){
+ const card=document.querySelector(selector);
  if(!card||card.dataset.dragReady==='1')return;
  card.dataset.dragReady='1';
- const handles=[card.querySelector('.stop-departures-grabber'),card.querySelector('.stop-card-heading')].filter(Boolean);
- let startY=0,startHeight=0,dragging=false,moved=false,pointerId=null,activeHandle=null;
+ let startY=0,startHeight=0,dragging=false,moved=false,pointerId=null;
+ const ignored='button,a,input,select,textarea,[data-no-sheet-drag],.vehicle-detail-stops,.course-stops';
+ card.style.touchAction='none';
+ card.querySelectorAll('.vehicle-detail-stops,.course-stops').forEach(el=>{el.style.touchAction='pan-y';el.style.overscrollBehavior='contain';});
  const move=event=>{
   if(!dragging||(pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
-  if(Math.abs(event.clientY-startY)>4)moved=true;
+  const delta=startY-event.clientY;
+  if(Math.abs(delta)>5)moved=true;
   if(!moved)return;
   if(event.cancelable)event.preventDefault();
-  const next=Math.max(window.innerHeight*.38,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
-  card.style.height=next+'px';card.style.maxHeight='94dvh';
+  const next=Math.max(window.innerHeight*.38,Math.min(window.innerHeight*.94,startHeight+delta));
+  card.style.height=next+'px';
+  card.style.maxHeight='94dvh';
  };
  const stop=event=>{
-  if(!dragging)return;dragging=false;
-  try{if(pointerId!==null&&activeHandle&&activeHandle.hasPointerCapture(pointerId))activeHandle.releasePointerCapture(pointerId);}catch(_){}
-  pointerId=null;activeHandle=null;
+  if(!dragging)return;
+  dragging=false;
+  try{if(pointerId!==null&&card.hasPointerCapture(pointerId))card.releasePointerCapture(pointerId);}catch(_){}
+  pointerId=null;
+  card.classList.remove('sheet-dragging');
  };
- handles.forEach(handle=>{
-  handle.style.touchAction='none';handle.style.cursor='ns-resize';
-  handle.addEventListener('pointerdown',event=>{
-   if(event.pointerType==='mouse'&&event.button!==0)return;
-   if(event.target.closest('button,a,input,select,textarea'))return;
-   dragging=true;moved=false;activeHandle=handle;pointerId=event.pointerId;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
-   try{handle.setPointerCapture(pointerId);}catch(_){}
-  });
+ card.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse'&&event.button!==0)return;
+  if(event.target.closest(ignored))return;
+  dragging=true;moved=false;pointerId=event.pointerId;
+  startY=event.clientY;startHeight=card.getBoundingClientRect().height;
+  card.classList.add('sheet-dragging');
+  try{card.setPointerCapture(pointerId);}catch(_){}
  });
- document.addEventListener('pointermove',move,{passive:false});
- document.addEventListener('pointerup',stop);document.addEventListener('pointercancel',stop);
+ card.addEventListener('pointermove',move,{passive:false});
+ card.addEventListener('pointerup',stop);
+ card.addEventListener('pointercancel',stop);
 }
+function initStopCardResizing(){initBottomSheetDrag('.stop-departures-card');}
+function initVehicleCardResizing(){initBottomSheetDrag('.vehicle-detail-card');}
 initStopCardResizing();
-initStopCardResizing();
-function initVehicleCardResizing(){
- const card=document.querySelector('.vehicle-detail-card');
- if(!card||card.dataset.dragReady==='1')return;
- card.dataset.dragReady='1';
- const handles=[card.querySelector('.vehicle-detail-grabber'),card.querySelector('.vehicle-detail-head'),card.querySelector('.vehicle-detail-meta')].filter(Boolean);
- let startY=0,startHeight=0,dragging=false,moved=false,pointerId=null,activeHandle=null;
- const move=event=>{
-  if(!dragging||(pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
-  if(Math.abs(event.clientY-startY)>4)moved=true;
-  if(!moved)return;
-  if(event.cancelable)event.preventDefault();
-  const next=Math.max(window.innerHeight*.38,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
-  card.style.height=next+'px';card.style.maxHeight='94dvh';
- };
- const stop=event=>{
-  if(!dragging)return;dragging=false;
-  try{if(pointerId!==null&&activeHandle&&activeHandle.hasPointerCapture(pointerId))activeHandle.releasePointerCapture(pointerId);}catch(_){}
-  pointerId=null;activeHandle=null;
- };
- handles.forEach(handle=>{
-  handle.style.touchAction='none';handle.style.cursor='ns-resize';
-  handle.addEventListener('pointerdown',event=>{
-   if(event.pointerType==='mouse'&&event.button!==0)return;
-   if(event.target.closest('button,a,input,select,textarea'))return;
-   dragging=true;moved=false;activeHandle=handle;pointerId=event.pointerId;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
-   try{handle.setPointerCapture(pointerId);}catch(_){}
-  });
- });
- document.addEventListener('pointermove',move,{passive:false});
- document.addEventListener('pointerup',stop);document.addEventListener('pointercancel',stop);
-}
-initVehicleCardResizing();
 initVehicleCardResizing();
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
 function getSession(){try{return JSON.parse(localStorage.getItem('transportie-session')||'null');}catch(e){return null;}}
