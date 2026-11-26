@@ -498,6 +498,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 @media(min-width:700px){.stop-departures-card{height:62vh;min-height:320px;max-height:88vh}}
 @media(max-width:850px){input,select,textarea{font-size:16px!important}}
 
+/* Panele przewijane i rozsuwane jak w czynaczas — gest na uchwycie zmienia wysokość, gest w treści przewija zawartość. */
+.vehicle-detail-card{height:53dvh;max-height:94dvh;min-height:38dvh;overflow:hidden;display:flex;flex-direction:column;touch-action:pan-y}
+#vehicleDetailContent{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin}
+.vehicle-detail-grabber{flex:none;touch-action:none}
+.vehicle-detail-stops{max-height:none;overflow:visible}
+.stop-departures-card{height:68dvh;min-height:38dvh;max-height:94dvh;overflow:hidden;display:flex;flex-direction:column;touch-action:pan-y}
+#stopDeparturesContent{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.stop-departures-grabber{flex:none;touch-action:none}
+@media(max-width:520px){.vehicle-detail-card{height:53dvh;max-height:94dvh;min-height:38dvh}.stop-departures-card{height:68dvh;max-height:94dvh;min-height:38dvh}}
+
 /* Drobniejsze znaczniki przystanków, prostokątne kafle odjazdów i brak zoomu przy polach na telefonach. */
 .leaflet-stop-pane .leaflet-marker-icon.stop-marker{width:26px!important;height:26px!important;margin-left:-13px!important;margin-top:-13px!important}
 .leaflet-stop-pane .stop-icon{width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;border-radius:6px!important}
@@ -748,48 +758,16 @@ function initStopCardResizing(){
  const handle=document.querySelector('.stop-departures-grabber');
  const card=document.querySelector('.stop-departures-card');
  if(!handle||!card||handle.dataset.ready==='1')return;
- handle.dataset.ready='1';
- let startY=0,startHeight=0,dragging=false;
- handle.addEventListener('pointerdown',event=>{
-  if(event.pointerType==='mouse'&&event.button!==0)return;
-  dragging=true;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
-  handle.setPointerCapture(event.pointerId);event.preventDefault();
- });
- handle.addEventListener('pointermove',event=>{
-  if(!dragging)return;
-  const next=Math.max(240,Math.min(window.innerHeight*.92,startHeight+startY-event.clientY));
-  card.style.height=next+'px';
- });
- const stop=event=>{if(!dragging)return;dragging=false;try{handle.releasePointerCapture(event.pointerId);}catch(_){} };
- handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
-}
-initStopCardResizing();
-function initVehicleCardResizing(){
- const handle=document.querySelector('.vehicle-detail-grabber');
- const card=document.querySelector('.vehicle-detail-card');
- if(!handle||!card||handle.dataset.ready==='1')return;
- handle.dataset.ready='1';
- handle.style.touchAction='none';
- handle.style.cursor='ns-resize';
- handle.style.position='relative';
- handle.style.height='24px';
- handle.style.minHeight='24px';
- handle.style.margin='-6px auto 8px';
- handle.style.width='100%';
- handle.style.display='block';
- handle.style.pointerEvents='auto';
+ handle.dataset.ready='1';handle.style.touchAction='none';
  let startY=0,startHeight=0,dragging=false,pointerId=null;
  const move=event=>{
-  if(!dragging|| (pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
+  if(!dragging||(pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
   if(event.cancelable)event.preventDefault();
-  const minHeight=Math.min(350,window.innerHeight*.45);
-  const next=Math.max(minHeight,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
-  card.style.height=next+'px';
-  card.style.maxHeight='94dvh';
+  const next=Math.max(window.innerHeight*.38,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
+  card.style.height=next+'px';card.style.maxHeight='94dvh';
  };
  const stop=event=>{
-  if(!dragging)return;
-  dragging=false;
+  if(!dragging)return;dragging=false;
   try{if(pointerId!==null&&handle.hasPointerCapture(pointerId))handle.releasePointerCapture(pointerId);}catch(_){}
   pointerId=null;
  };
@@ -801,8 +779,35 @@ function initVehicleCardResizing(){
  });
  handle.addEventListener('pointermove',move);
  document.addEventListener('pointermove',move,{passive:false});
- document.addEventListener('pointerup',stop);
- document.addEventListener('pointercancel',stop);
+ document.addEventListener('pointerup',stop);document.addEventListener('pointercancel',stop);
+}
+initStopCardResizing();
+function initVehicleCardResizing(){
+ const handle=document.querySelector('.vehicle-detail-grabber');
+ const card=document.querySelector('.vehicle-detail-card');
+ if(!handle||!card||handle.dataset.ready==='1')return;
+ handle.dataset.ready='1';handle.style.touchAction='none';handle.style.cursor='ns-resize';
+ let startY=0,startHeight=0,dragging=false,pointerId=null;
+ const move=event=>{
+  if(!dragging||(pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
+  if(event.cancelable)event.preventDefault();
+  const next=Math.max(window.innerHeight*.38,Math.min(window.innerHeight*.94,startHeight+startY-event.clientY));
+  card.style.height=next+'px';card.style.maxHeight='94dvh';
+ };
+ const stop=event=>{
+  if(!dragging)return;dragging=false;
+  try{if(pointerId!==null&&handle.hasPointerCapture(pointerId))handle.releasePointerCapture(pointerId);}catch(_){}
+  pointerId=null;
+ };
+ handle.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse'&&event.button!==0)return;
+  dragging=true;pointerId=event.pointerId;startY=event.clientY;startHeight=card.getBoundingClientRect().height;
+  try{handle.setPointerCapture(pointerId);}catch(_){}
+  if(event.cancelable)event.preventDefault();
+ });
+ handle.addEventListener('pointermove',move);
+ document.addEventListener('pointermove',move,{passive:false});
+ document.addEventListener('pointerup',stop);document.addEventListener('pointercancel',stop);
 }
 initVehicleCardResizing();
 async function authRequest(path,body,token){const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'Błąd połączenia z kontem');return data;}
