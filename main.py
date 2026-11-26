@@ -2128,3 +2128,14 @@ async def get_departures(stop_id: str):
         return {"lastUpdate": last_update, "departures": normalized[:30], "count": len(normalized)}
     except Exception as error:
         return JSONResponse(status_code=502, content={"departures": [], "error": str(error)[:240]})
+
+
+/* Ukryj przyciski mapy pod otwartymi kartami pojazdu i odjazdów. */
+body.vehicle-detail-open #mapZoom,
+body.vehicle-detail-open #myLocation,
+body.stop-departures-open #mapZoom,
+body.stop-departures-open #myLocation {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
