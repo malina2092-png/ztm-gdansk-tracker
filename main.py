@@ -522,6 +522,11 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
  .vehicle-detail-grabber{height:28px!important;min-height:28px!important;width:100%!important;margin:0 auto 8px!important;position:relative!important;display:block!important;touch-action:none!important;cursor:ns-resize!important;pointer-events:auto!important;background:transparent!important}
  .vehicle-detail-grabber:after{content:"";position:absolute;left:50%;top:11px;transform:translateX(-50%);width:44px;height:4px;border-radius:8px;background:#777}
 }
+
+/* Małe, jednolite znaczniki przystanków bez etykiet na mapie */
+.stop-marker{background:transparent!important;border:0!important;width:12px!important;height:12px!important}
+.stop-icon{display:block;width:8px;height:8px;border-radius:50%;background:#00a65a;border:1.5px solid #d8ffe7;box-shadow:0 0 0 1px #075b36,0 1px 3px #0008;font-size:0}
+.leaflet-tooltip.stop-label{display:none!important}
 </style>
 </head>
 <body class="menu-closed">
@@ -703,13 +708,12 @@ async function loadStops(){
    const name=stop.stopName||stop.stopDesc||stop.stop_name||stop.name||'Przystanek';
    const platform=String(stop.subName||stop.sub_name||stop.stopCode||stop.stop_code||stop.platform||'').trim();
    if(!id||!Number.isFinite(lat)||!Number.isFinite(lon)||lat<53.8||lat>54.8||lon<18||lon>19.2||stopMarkers[id])return;
-   const iconHtml='<span class="stop-icon" aria-label="Przystanek autobusowy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2h9A2.5 2.5 0 0 1 19 4.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5zM7 5h10v8H7zM8 16h2m4 0h2M8 21v-2m8 2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+   const iconHtml='<span class="stop-icon" aria-label="Przystanek"></span>';
    const marker=L.marker([lat,lon],{
     pane:'stopsPane',zIndexOffset:10000,keyboard:true,interactive:true,bubblingMouseEvents:false,riseOnHover:true,
-    icon:L.divIcon({className:'stop-marker',html:iconHtml,iconSize:[36,36],iconAnchor:[18,18]})
+    icon:L.divIcon({className:'stop-marker',html:iconHtml,iconSize:[12,12],iconAnchor:[6,6]})
    }).addTo(map);
-   const label=platform?'<span>'+safe(name)+'</span><span class="stop-platform">'+safe(platform)+'</span>':safe(name);
-   marker.bindTooltip(label,{permanent:true,direction:'bottom',offset:[0,22],className:'stop-label',opacity:1});
+   // Nazwy przystanków nie są wyświetlane na mapie — szczegóły są po kliknięciu znacznika.
    marker.on('click',event=>{if(event&&event.originalEvent&&window.L)window.L.DomEvent.stopPropagation(event.originalEvent);showStopDepartures(id,name);});
    stopMarkers[id]=marker;
    created++;
