@@ -628,7 +628,7 @@ body.stop-departures-open #myLocation {
   position:relative!important;
   display:block!important;
   width:100%!important;max-width:100%!important;min-width:0!important;
-  height:58dvh!important;min-height:300px!important;max-height:94dvh!important;
+  height:58dvh;min-height:300px!important;max-height:94dvh;
   margin:0!important;padding:8px 0 14px!important;
   box-sizing:border-box!important;overflow-x:hidden!important;overflow-y:auto!important;
   border:0!important;border-top:1px solid #292d2d!important;border-radius:0!important;
@@ -726,7 +726,7 @@ body.stop-departures-open #myLocation {
  body.vehicle-detail-open .bottom-nav{display:flex!important}
 }
 @media(max-width:520px){
- .vehicle-detail-card{height:58dvh!important;min-height:300px!important;width:100vw!important}
+ .vehicle-detail-card{height:58dvh;min-height:300px!important;width:100vw!important}
  .vehicle-detail-head{padding-left:14px!important}
  .vehicle-detail-meta{padding-left:14px!important;padding-right:14px!important}
  .vehicle-tab-panel{padding-left:14px!important;padding-right:14px!important}
