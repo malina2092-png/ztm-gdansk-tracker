@@ -741,7 +741,7 @@ body.stop-departures-open #myLocation {
  }
  .vehicle-detail-card{
   width:100vw!important;max-width:100vw!important;min-width:0!important;
-  height:58dvh!important;min-height:300px!important;max-height:94dvh!important;
+  height:58dvh;min-height:300px!important;max-height:94dvh;
   margin:0!important;padding:0 0 calc(12px + env(safe-area-inset-bottom))!important;
   overflow-x:hidden!important;overflow-y:auto!important;
   border:0!important;border-top:2px solid #079b62!important;border-radius:0!important;
@@ -825,7 +825,7 @@ body.stop-departures-open #myLocation {
  .vehicle-duty-course-head,.vehicle-duty-stop{font-size:10px!important}
 }
 @media(max-width:520px){
- .vehicle-detail-card{width:100vw!important;height:58dvh!important;max-height:94dvh!important}
+ .vehicle-detail-card{width:100vw!important;height:58dvh;max-height:94dvh}
 }
 
 </style>
