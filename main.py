@@ -561,6 +561,57 @@ body.stop-departures-open #myLocation {
  .vehicle-detail-card{width:100%!important;max-height:94dvh!important;padding:18px 16px calc(22px + env(safe-area-inset-bottom))!important}
  .stop-departures-card{width:100%!important;max-height:94dvh!important;border-radius:22px 22px 0 0!important}
 }
+
+/* Kompaktowy wygląd kart w stylu czynaczas */
+.vehicle-detail-card{
+ width:100%;max-width:850px;height:58dvh;min-height:300px;max-height:94dvh;
+ border-radius:0!important;background:#111!important;color:#eee!important;
+ padding:9px 0 calc(12px + env(safe-area-inset-bottom))!important;
+ overflow-x:hidden;overflow-y:auto;box-sizing:border-box;
+}
+.vehicle-detail-head{gap:9px;padding:3px 48px 8px 12px}
+.vehicle-detail-line{min-width:48px;height:40px;padding:0 6px;font-size:18px}
+.vehicle-detail-title{font-size:15px;line-height:1.2}
+.vehicle-detail-type,.vehicle-detail-subtitle{font-size:9px;line-height:1.25}
+.vehicle-live-status{font-size:9px;padding:3px 7px}
+.vehicle-detail-meta{gap:5px;padding:0 12px 7px;font-size:10px;line-height:1.3}
+.vehicle-detail-tabs{margin-bottom:5px}
+.vehicle-detail-tabs button{font-size:clamp(9px,2.4vw,12px);padding:9px 2px 8px;letter-spacing:0}
+.vehicle-tab-panel{padding:0 12px 9px}
+.vehicle-detail-section{padding:10px 0 1px}
+.vehicle-detail-section h3{font-size:10px;margin-bottom:7px}
+.vehicle-detail-grid{gap:5px}
+.vehicle-detail-field{padding:7px 8px;border-radius:3px}
+.vehicle-detail-field span{font-size:8px;margin-bottom:3px}
+.vehicle-detail-field b{font-size:10px;line-height:1.25}
+.vehicle-detail-stops .course-stop{min-height:43px;gap:8px;padding:6px 0}
+.course-stop-marker{width:18px;min-height:34px}
+.course-stop-marker:after{width:10px;height:10px}
+.course-stop-name b{font-size:11px;line-height:1.2}
+.course-stop-name small{font-size:9px}
+.course-stop-time{font-size:10px}
+.vehicle-brigade-note{padding:8px;border-radius:3px;font-size:10px;line-height:1.35;margin-bottom:7px}
+.vehicle-duty-courses{gap:7px}
+.vehicle-duty-course{padding:8px;border-radius:3px}
+.vehicle-duty-course-head{font-size:10px;padding-bottom:6px}
+.vehicle-duty-course-head small{font-size:9px;white-space:normal}
+.vehicle-duty-stop{font-size:10px;gap:6px;padding:5px 0}
+.vehicle-detail-close{width:30px;height:30px;top:7px;right:9px;font-size:23px}
+.vehicle-detail-grabber{width:30px;height:3px;margin-bottom:7px}
+.stop-departures-card{height:58dvh;min-height:300px;max-height:94dvh;border-radius:0;padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
+.stop-card-heading h3{font-size:16px;line-height:1.2}
+.stop-card-heading small{font-size:9px}
+.stop-card-close{width:34px;height:34px;font-size:24px}
+.stop-departures-card .departure-row{gap:7px;padding:9px 7px;border-radius:3px;margin:6px 0}
+.stop-departures-card .departure-row b{font-size:12px}
+.stop-departures-card .departure-row small{font-size:9px}
+.stop-departures-card .departure-fleet{font-size:10px;padding:3px 5px}
+@media(min-width:850px){
+ .vehicle-detail-card{height:58vh;max-height:94vh;width:min(850px,calc(100vw - 300px))}
+}
+@media(max-width:520px){
+ .vehicle-detail-card{height:58dvh;min-height:300px;max-height:94dvh;width:100vw;max-width:100vw;border-radius:0!important;padding:8px 0 calc(12px + env(safe-area-inset-bottom))!important}
+}
 </style>
 </head>
 <body class="menu-closed">
@@ -785,7 +836,7 @@ function initBottomSheetDrag(selector){
  let startY=0,startHeight=0,dragging=false,moved=false,pointerId=null;
  // Gestures started anywhere on the sheet resize it vertically; width is never changed.
  card.style.touchAction='none';
- card.style.height=card.style.height||'76dvh';
+ card.style.height=card.style.height||'58dvh';
  card.style.maxHeight='94dvh';
  const move=event=>{
   if(!dragging||(pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
