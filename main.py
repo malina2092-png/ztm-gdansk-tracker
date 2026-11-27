@@ -146,7 +146,7 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 /* Czynaczas-inspired dark vehicle card */
 .vehicle-detail-overlay{padding:0;align-items:flex-end;justify-content:center}
 .vehicle-detail-backdrop{background:rgba(0,0,0,.16);backdrop-filter:none}
-.vehicle-detail-card{width:100%;max-width:none;max-height:53dvh;overflow-y:auto;overscroll-behavior:contain;background:#111;color:#eee;border:0;border-radius:20px 20px 0 0;padding:12px 0 calc(16px + env(safe-area-inset-bottom));box-shadow:0 -10px 35px #0007}
+.vehicle-detail-card{width:100%;max-width:none;height:76dvh;max-height:94dvh;overflow-y:auto;overscroll-behavior:contain;background:#111;color:#eee;border:0;border-radius:20px 20px 0 0;padding:12px 0 calc(16px + env(safe-area-inset-bottom));box-shadow:0 -10px 35px #0007}
 .vehicle-detail-grabber{display:block;width:38px;height:4px;border-radius:8px;background:#555;margin:0 auto 12px}
 .vehicle-detail-close{top:10px;right:14px;background:transparent;color:#eee;font-size:28px;z-index:2}
 .vehicle-detail-head{gap:12px;padding:4px 58px 12px 16px;border:0}
@@ -165,8 +165,8 @@ td{padding:13px 14px;border-top:1px solid #edf1f6}tbody tr:hover{background:#faf
 .course-stop-name b{color:#e7e7e7;font-size:14px}.course-stop-name small{color:#999}
 .course-stop-time{color:#ddd;font-size:13px}.course-stop-time s{color:#aaa}.course-stop-time strong{color:#00c477}
 .vehicle-detail-empty{background:#1b1b1b;color:#aaa}
-@media(min-width:850px){.vehicle-detail-overlay{align-items:flex-end;justify-content:center;padding:0}.vehicle-detail-card{width:min(100%,850px);max-height:55vh;border-radius:20px 20px 0 0}}
-@media(max-width:520px){.vehicle-detail-overlay{padding:0}.vehicle-detail-card{width:100%;max-height:53dvh;border-radius:20px 20px 0 0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}.vehicle-detail-close{top:8px;right:12px}.vehicle-detail-head{padding:2px 52px 10px 16px}}
+@media(min-width:850px){.vehicle-detail-overlay{align-items:flex-end;justify-content:center;padding:0}.vehicle-detail-card{width:min(100%,850px);height:76dvh;max-height:94dvh;border-radius:20px 20px 0 0}}
+@media(max-width:520px){.vehicle-detail-overlay{padding:0}.vehicle-detail-card{width:100%;height:76dvh;max-height:94dvh;border-radius:20px 20px 0 0;padding:10px 0 calc(14px + env(safe-area-inset-bottom))}.vehicle-detail-close{top:8px;right:12px}.vehicle-detail-head{padding:2px 52px 10px 16px}}
 
 
 .vehicle-detail-meta{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:0 16px 10px;color:#bdbdbd;font-size:12px}
@@ -429,7 +429,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none
 .stop-departures-overlay{position:fixed;inset:0;z-index:5100;display:none;align-items:flex-end;justify-content:center;pointer-events:none}
 .stop-departures-overlay.open{display:flex;pointer-events:auto}
 .stop-departures-backdrop{position:absolute;inset:0;background:#0008}
-.stop-departures-card{position:relative;width:min(620px,100%);max-height:78dvh;overflow:auto;background:#111;color:#eee;border:1px solid #444;border-radius:22px 22px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px #0008}
+.stop-departures-card{position:relative;width:min(620px,100%);height:76dvh;max-height:94dvh;overflow:auto;background:#111;color:#eee;border:1px solid #444;border-radius:22px 22px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px #0008}
 .stop-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .stop-card-heading small{color:#0aa12c;font-weight:800;letter-spacing:.08em}
 .stop-card-heading h3{margin:3px 0 0;font-size:22px}
@@ -783,9 +783,10 @@ function initBottomSheetDrag(selector){
  if(!card||card.dataset.dragReady==='1')return;
  card.dataset.dragReady='1';
  let startY=0,startHeight=0,dragging=false,moved=false,pointerId=null;
- const ignored='button,a,input,select,textarea,[data-no-sheet-drag],.vehicle-detail-stops,.course-stops';
+ // Gestures started anywhere on the sheet resize it vertically; width is never changed.
  card.style.touchAction='none';
- card.querySelectorAll('.vehicle-detail-stops,.course-stops').forEach(el=>{el.style.touchAction='pan-y';el.style.overscrollBehavior='contain';});
+ card.style.height=card.style.height||'76dvh';
+ card.style.maxHeight='94dvh';
  const move=event=>{
   if(!dragging||(pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==pointerId))return;
   const delta=startY-event.clientY;
@@ -805,7 +806,7 @@ function initBottomSheetDrag(selector){
  };
  card.addEventListener('pointerdown',event=>{
   if(event.pointerType==='mouse'&&event.button!==0)return;
-  if(event.target.closest(ignored))return;
+  if(event.target.closest('[data-no-sheet-drag]'))return;
   dragging=true;moved=false;pointerId=event.pointerId;
   startY=event.clientY;startHeight=card.getBoundingClientRect().height;
   card.classList.add('sheet-dragging');
