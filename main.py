@@ -861,6 +861,39 @@ body.stop-departures-open #myLocation {
 .vehicle-detail-empty{color:#aaa!important}
 @media(max-width:520px){.vehicle-detail-card{width:100vw!important;max-width:100vw!important;height:58dvh;max-height:94dvh!important;min-height:38dvh!important;border-radius:0!important}.vehicle-detail-head{padding-left:14px!important}.vehicle-tab-panel{padding-left:12px!important;padding-right:12px!important}}
 
+
+/* Finalny układ karty pojazdu — możliwie blisko referencji Czynaczas. */
+.vehicle-detail-overlay{inset:0!important;padding:0!important;align-items:flex-end!important;justify-content:center!important;z-index:5000!important}
+.vehicle-detail-backdrop{background:rgba(0,0,0,.12)!important}
+.vehicle-detail-card{height:74dvh!important;min-height:44dvh!important;max-height:94dvh!important;width:100%!important;max-width:100%!important;border-radius:0!important;background:#111!important;color:#eee!important;border:0!important;box-shadow:0 -8px 28px #0008!important;padding:9px 0 calc(16px + env(safe-area-inset-bottom))!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+#vehicleDetailContent{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important}
+.vehicle-detail-grabber{width:38px!important;height:4px!important;min-height:4px!important;margin:0 auto 10px!important;background:#666!important;flex:none!important}
+.vehicle-detail-actions{position:absolute!important;z-index:12!important;left:0!important;right:0!important;bottom:74dvh!important;transform:translateY(-8px)!important;display:flex!important;align-items:center!important;justify-content:space-around!important;padding:0 7%!important;pointer-events:none!important}
+.vehicle-action{pointer-events:auto!important;width:54px!important;height:54px!important;border:0!important;border-radius:50%!important;background:#a9004b!important;color:#fff!important;font-size:27px!important;font-weight:700!important;display:grid!important;place-items:center!important;box-shadow:0 3px 12px #0007!important}
+.vehicle-action.close{width:72px!important;height:72px!important;background:#078f19!important;font-size:43px!important}
+.vehicle-detail-close{display:none!important}.vehicle-detail-favorite{display:none!important}
+.vehicle-detail-head{display:flex!important;align-items:center!important;gap:12px!important;padding:4px 64px 10px 16px!important;border-bottom:0!important}
+.vehicle-detail-line{flex:0 0 58px!important;width:58px!important;min-width:58px!important;height:50px!important;border-radius:8px!important;background:#009b68!important;color:#fff!important;font-size:24px!important}
+.vehicle-detail-title{font-size:clamp(16px,4.2vw,20px)!important;line-height:1.15!important;color:#eee!important}
+.vehicle-detail-type{font-size:10px!important;color:#aaa!important}
+.vehicle-live-status{background:#087b25!important;color:#e3ffe9!important;font-size:11px!important}
+.vehicle-detail-meta{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:6px 9px!important;padding:0 16px 10px!important;color:#bdbdbd!important;font-size:clamp(11px,3.2vw,15px)!important;line-height:1.35!important}
+.vehicle-detail-meta strong{color:#eee!important}
+.vehicle-detail-tabs{position:sticky!important;top:-9px!important;z-index:5!important;background:#111!important;display:grid!important;grid-template-columns:1fr 1fr 1.8fr!important;margin:0!important;border-bottom:1px solid #333!important}
+.vehicle-detail-tabs button{font-size:clamp(10px,2.7vw,15px)!important;padding:13px 3px 10px!important;color:#888!important;border-bottom:3px solid transparent!important}
+.vehicle-detail-tabs button.active{color:#00a85a!important;border-bottom-color:#00a85a!important}
+.vehicle-tab-panel{padding:10px 14px 14px!important}
+.vehicle-detail-section h3{color:#00a85a!important;font-size:14px!important;margin:8px 0 12px!important}
+.vehicle-detail-stops{border-left:4px solid #009b68!important;margin-left:24px!important;padding-left:17px!important}
+.vehicle-detail-stops .course-stop{position:relative!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;min-height:58px!important;padding:11px 0!important;border-bottom:1px solid #303030!important;overflow:visible!important}
+.course-stop-marker{position:absolute!important;left:-29px!important;width:20px!important;height:20px!important;min-height:20px!important;border:3px solid #009b68!important;border-radius:50%!important;background:#111!important}
+.course-stop-marker:before{display:none!important}.course-stop-marker:after{width:7px!important;height:7px!important;background:#00a56a!important;border:0!important;box-shadow:none!important}
+.course-stop-name b{font-size:clamp(12px,3.6vw,16px)!important;color:#eee!important}
+.course-stop-time{font-size:clamp(12px,3.5vw,16px)!important;color:#ddd!important}
+.course-stop-time strong{color:#00c477!important}
+.vehicle-detail-field{background:#191919!important;border:1px solid #303030!important;border-radius:4px!important}
+@media(max-width:700px){.vehicle-detail-card{height:74dvh!important;max-height:94dvh!important;width:100vw!important;border-radius:0!important}.vehicle-detail-actions{bottom:74dvh!important}.vehicle-detail-head{padding-left:14px!important}}
+
 </style>
 </head>
 <body class="menu-closed">
@@ -902,7 +935,7 @@ body.stop-departures-open #myLocation {
   <div id="mapVehicleSearchResults" style="display:none;max-height: min(48vh,360px);overflow-y:auto;margin-top:7px"></div>
  </div>
  <div id="stopDeparturesOverlay" class="stop-departures-overlay" aria-hidden="true"><div class="stop-departures-backdrop" onclick="closeStopDepartures()"></div><article class="stop-departures-card" role="dialog" aria-modal="true" aria-label="Odjazdy z przystanku"><div class="stop-departures-grabber" aria-label="Przeciągnij, aby zmienić wysokość karty"></div><div id="stopDeparturesContent"></div></article></div>
-  <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><button class="vehicle-favorite-toggle vehicle-detail-favorite" id="vehicleDetailFavorite" type="button" onclick="toggleSelectedVehicleFavorite()" aria-label="Dodaj pojazd do ulubionych">☆</button><button class="vehicle-detail-close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button><div id="vehicleDetailContent"></div></article></div>
+  <div id="vehicleDetailOverlay" class="vehicle-detail-overlay" aria-hidden="true"><div class="vehicle-detail-backdrop" onclick="closeVehicleDetails()"></div><div class="vehicle-detail-actions"><button class="vehicle-action favorite" id="vehicleDetailFavorite" type="button" onclick="toggleSelectedVehicleFavorite()" aria-label="Dodaj pojazd do ulubionych">☆</button><button class="vehicle-action" type="button" onclick="shareVehicleDetails()" aria-label="Udostępnij pojazd">⇧</button><button class="vehicle-action" type="button" onclick="expandVehicleCard()" aria-label="Rozwiń kartę">⛶</button><button class="vehicle-action close" type="button" onclick="closeVehicleDetails()" aria-label="Zamknij">×</button></div><article class="vehicle-detail-card" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu"><div class="vehicle-detail-grabber"></div><div id="vehicleDetailContent"></div></article></div>
  <div class="map-layout">
   <div class="surface"><div id="map"></div></div>
   <aside class="map-side">
@@ -1268,6 +1301,8 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
  }
 }
 let vehicleRouteStopsTimer=null;
+function expandVehicleCard(){const card=document.querySelector('.vehicle-detail-card');if(!card)return;const h=window.innerHeight;card.style.height=(card.getBoundingClientRect().height<h*.88?h*.92:h*.53)+'px';}
+async function shareVehicleDetails(){const v=Array.isArray(vehicles)?vehicles.find(item=>String(item.vehicleCode||'')===String(selectedVehicleCode)):null;if(!v)return;const text='Transportie · linia '+(v.routeShortName||'—')+' · tabor #'+(v.vehicleCode||'—')+' · '+(v.headsign||v.direction||'');try{if(navigator.share)await navigator.share({title:'Pojazd w Transportie',text});else if(navigator.clipboard)await navigator.clipboard.writeText(text);}catch(error){}}
 function closeVehicleDetails(){if(vehicleRoutePolyline&&map){map.removeLayer(vehicleRoutePolyline);vehicleRoutePolyline=null;}restoreMapAfterVehicleFocus();const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open','vehicle-map-focus');selectedVehicleCode=null;if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}}
 function formatZtmTimestamp(value){if(!value)return '';const d=new Date(value);return Number.isNaN(d.getTime())?String(value):d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 async function loadVehicleDuty(routeId,service){
