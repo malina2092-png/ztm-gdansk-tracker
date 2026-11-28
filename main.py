@@ -828,6 +828,39 @@ body.stop-departures-open #myLocation {
  .vehicle-detail-card{width:100vw!important;height:58dvh;max-height:94dvh}
 }
 
+/* Karta pojazdu – układ inspirowany czy na czas, bez rozciągania na boki */
+.vehicle-detail-card{background:#111!important;color:#e8e8e8!important;border:0!important;border-radius:0!important;box-shadow:0 -8px 30px #0008!important;overflow-y:auto!important;overflow-x:hidden!important;padding:12px 0 calc(18px + env(safe-area-inset-bottom))!important}
+.vehicle-detail-head{display:flex!important;align-items:center!important;gap:12px!important;padding:4px 58px 12px 16px!important;border-bottom:1px solid #303030!important}
+.vehicle-detail-line{flex:0 0 62px!important;width:62px!important;min-width:62px!important;height:58px!important;border-radius:4px!important;background:#009b68!important;color:#fff!important;font-size:25px!important;font-weight:800!important}
+.vehicle-detail-type{color:#aaa!important;font-size:10px!important;letter-spacing:.08em!important}
+.vehicle-detail-title{color:#eee!important;font-size:clamp(15px,4vw,20px)!important;line-height:1.2!important;font-weight:700!important;overflow-wrap:anywhere!important}
+.vehicle-live-status{color:#08a34a!important;font-size:11px!important}
+.vehicle-detail-meta{display:flex!important;flex-wrap:wrap!important;gap:5px 8px!important;padding:9px 16px!important;color:#aaa!important;font-size:11px!important;line-height:1.35!important}
+.vehicle-detail-meta strong{color:#eee!important}
+.vehicle-detail-tabs{display:grid!important;grid-template-columns:1fr 1fr 1.8fr!important;gap:0!important;border-bottom:1px solid #333!important;margin:0!important}
+.vehicle-detail-tabs button{min-width:0!important;padding:13px 4px!important;background:transparent!important;color:#929292!important;border:0!important;border-bottom:3px solid transparent!important;border-radius:0!important;font-size:clamp(10px,2.7vw,13px)!important;font-weight:700!important;white-space:nowrap!important}
+.vehicle-detail-tabs button.active{color:#079b43!important;border-bottom-color:#079b43!important}
+.vehicle-tab-panel{padding:10px 12px 0!important}
+.vehicle-detail-section{margin:0!important;padding:0!important}
+.vehicle-detail-section h3{color:#079b43!important;font-size:14px!important;margin:8px 0 12px!important}
+.vehicle-detail-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+.vehicle-detail-field{min-width:0!important;background:#171717!important;border:1px solid #303030!important;border-radius:3px!important;padding:8px!important}
+.vehicle-detail-field span{color:#999!important;font-size:10px!important}
+.vehicle-detail-field b{color:#eee!important;font-size:12px!important;overflow-wrap:anywhere!important}
+.vehicle-detail-stops{border-left:4px solid #009b68!important;margin-left:24px!important;padding-left:17px!important}
+.course-stop{position:relative!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;padding:13px 0!important;border-bottom:1px solid #303030!important;color:#ddd!important}
+.course-stop-marker{position:absolute!important;left:-26px!important;width:17px!important;height:17px!important;border:4px solid #009b68!important;background:#111!important;border-radius:50%!important}
+.course-stop-name{font-size:13px!important;min-width:0!important}
+.course-stop-time{font-size:13px!important;color:#ddd!important;white-space:nowrap!important}
+.course-stop-time strong{display:block!important;color:#079b43!important}
+.vehicle-detail-close{z-index:5!important;top:10px!important;right:12px!important;width:42px!important;height:42px!important;background:#078f19!important;color:#fff!important;border-radius:50%!important;font-size:30px!important}
+.vehicle-detail-favorite{z-index:5!important;top:12px!important;right:66px!important;background:#a9004b!important;color:#fff!important}
+.vehicle-detail-grabber{display:block!important;width:38px!important;height:4px!important;border-radius:0!important;background:#555!important;margin:0 auto 10px!important}
+.vehicle-duty-course{background:#171717!important;border:1px solid #333!important;border-radius:3px!important}
+.vehicle-duty-stop{color:#ddd!important;border-color:#333!important}
+.vehicle-detail-empty{color:#aaa!important}
+@media(max-width:520px){.vehicle-detail-card{width:100vw!important;max-width:100vw!important;height:58dvh;max-height:94dvh!important;min-height:38dvh!important;border-radius:0!important}.vehicle-detail-head{padding-left:14px!important}.vehicle-tab-panel{padding-left:12px!important;padding-right:12px!important}}
+
 </style>
 </head>
 <body class="menu-closed">
@@ -1029,7 +1062,7 @@ async function loadStops(){
  }finally{stopsLoading=false;}
 }
 function parseStopTime(value){if(!value)return null;const raw=String(value).trim();let date=new Date(raw);if(!isNaN(date.getTime()))return date;const match=raw.match(/(?:T|^)(\d{1,2}):(\d{2})(?::(\d{2}))?/);if(match){date=new Date();date.setHours(Number(match[1]),Number(match[2]),Number(match[3]||0),0);if(date.getTime()<Date.now()-60000)date.setDate(date.getDate()+1);return date;}return null;}
-function stopDepartureMarkup(d){const rawTime=d.estimatedTime||d.estimated_time||d.expectedTime||d.departureTime||d.arrivalTime||d.time||d.theoreticalTime||d.scheduledTime;const dt=parseStopTime(rawTime);const t=dt?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'—';const wait=dt?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const delay=d.delayInSeconds??d.delay_in_seconds;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(delay==null?'':(delay>0?'+':'')+Math.round(delay/60)+' min');const line=d.routeShortName||d.route||d.routeId||d.route_id||'—';const direction=d.headsign||d.direction||d.destination||'kierunek nieznany';const fleet=d.vehicleCode??d.vehicleId??d.vehicleNumber??d.fleetNumber;const clickable=fleet!=null&&fleet!=='';return '<div class="departure-row'+(clickable?' departure-row-clickable':'')+'"'+(clickable?' role="button" tabindex="0" data-departure-vehicle="'+safe(fleet)+'" aria-label="Pokaż pojazd '+safe(fleet)+' na mapie"':'')+'><span><b>'+safe(line)+'</b> · '+safe(direction)+(clickable?'<span class="departure-fleet" aria-hidden="true">#'+safe(fleet)+'</span>':'<small class="small-note">pojazd niepodany w danych</small>')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}
+function stopDepartureMarkup(d){const rawTime=d.estimatedTime||d.estimated_time||d.estimatedDepartureTime||d.estimated_departure_time||d.expectedTime||d.plannedDepartureTime||d.planned_departure_time||d.departureTime||d.departure_time||d.arrivalTime||d.arrival_time||d.time||d.theoreticalTime||d.theoretical_time||d.theoreticalDepartureTime||d.theoretical_departure_time||d.scheduledTime||d.scheduled_time;const dt=parseStopTime(rawTime);const t=dt?dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):(rawTime?String(rawTime).match(/\\d{1,2}:\\d{2}/)?.[0]||'—':'—');const wait=dt?Math.max(0,Math.round((dt.getTime()-Date.now())/60000)):null;const delay=d.delayInSeconds??d.delay_in_seconds;const mins=wait!==null?(wait===0?'teraz':'za '+wait+' min'):(delay==null?'':(delay>0?'+':'')+Math.round(delay/60)+' min');const line=d.routeShortName||d.route||d.routeId||d.route_id||'—';const direction=d.headsign||d.direction||d.destination||'kierunek nieznany';const fleet=d.vehicleCode??d.vehicleId??d.vehicleNumber??d.fleetNumber;const clickable=fleet!=null&&fleet!=='';return '<div class="departure-row'+(clickable?' departure-row-clickable':'')+'"'+(clickable?' role="button" tabindex="0" data-departure-vehicle="'+safe(fleet)+'" aria-label="Pokaż pojazd '+safe(fleet)+' na mapie"':'')+'><span><b>'+safe(line)+'</b> · '+safe(direction)+(clickable?'<span class="departure-fleet" aria-hidden="true">#'+safe(fleet)+'</span>':'<small class="small-note">pojazd niepodany w danych</small>')+'</span><span><b>'+safe(mins||'—')+'</b><br><small>'+safe(t)+'</small></span></div>';}
 async function loadStopDepartures(id,marker,name){try{const response=await fetch('/api/departures/'+encodeURIComponent(id),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'API odjazdów');const rows=Array.isArray(data.departures)?data.departures:[];const html=rows.length?rows.slice(0,15).map(stopDepartureMarkup).join(''):'<div class="empty">Brak najbliższych odjazdów w aktualnym źródle ZTM.</div>';marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Linia · kierunek · tabor · czas przyjazdu</div>'+html+'</div>');}catch(e){marker.setPopupContent('<div class="stop-popup"><b>'+safe(name||'Przystanek')+'</b><div class="small-note">Nie udało się pobrać odjazdów: '+safe(e.message)+'</div></div>');}}
 async function showStopDepartures(id,name){
  const overlay=document.getElementById('stopDeparturesOverlay'),box=document.getElementById('stopDeparturesContent');
@@ -2376,9 +2409,15 @@ async def get_departures(stop_id: str):
             vehicle = (row.get("vehicleCode") or row.get("vehicle_code") or row.get("vehicleId") or
                        row.get("vehicle_id") or row.get("vehicleNumber") or row.get("vehicle_number") or
                        row.get("fleetNumber") or row.get("vehicleNumber"))
-            estimated = (row.get("estimatedTime") or row.get("estimated_time") or row.get("expectedTime") or
-                         row.get("arrivalTime") or row.get("departureTime") or row.get("time"))
-            theoretical = row.get("theoreticalTime") or row.get("theoretical_time") or row.get("scheduledTime")
+            estimated = (row.get("estimatedTime") or row.get("estimated_time") or
+                         row.get("estimatedDepartureTime") or row.get("estimated_departure_time") or
+                         row.get("expectedTime") or row.get("plannedDepartureTime") or
+                         row.get("planned_departure_time") or row.get("arrivalTime") or
+                         row.get("arrival_time") or row.get("departureTime") or
+                         row.get("departure_time") or row.get("time"))
+            theoretical = (row.get("theoreticalTime") or row.get("theoretical_time") or
+                          row.get("theoreticalDepartureTime") or row.get("theoretical_departure_time") or
+                          row.get("scheduledTime") or row.get("scheduled_time"))
             identity = (str(route), str(direction), str(vehicle), str(estimated), str(theoretical))
             if identity in seen:
                 continue
