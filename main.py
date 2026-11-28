@@ -865,7 +865,7 @@ body.stop-departures-open #myLocation {
 /* Finalny układ karty pojazdu — możliwie blisko referencji Czynaczas. */
 .vehicle-detail-overlay{inset:0!important;padding:0!important;align-items:flex-end!important;justify-content:center!important;z-index:5000!important}
 .vehicle-detail-backdrop{background:rgba(0,0,0,.12)!important}
-.vehicle-detail-card{height:74dvh!important;min-height:44dvh!important;max-height:94dvh!important;width:100%!important;max-width:100%!important;border-radius:0!important;background:#111!important;color:#eee!important;border:0!important;box-shadow:0 -8px 28px #0008!important;padding:9px 0 calc(16px + env(safe-area-inset-bottom))!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+.vehicle-detail-card{height:74dvh;min-height:44dvh!important;max-height:94dvh!important;width:100%!important;max-width:100%!important;border-radius:0!important;background:#111!important;color:#eee!important;border:0!important;box-shadow:0 -8px 28px #0008!important;padding:9px 0 calc(16px + env(safe-area-inset-bottom))!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
 #vehicleDetailContent{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important}
 .vehicle-detail-grabber{width:38px!important;height:4px!important;min-height:4px!important;margin:0 auto 10px!important;background:#666!important;flex:none!important}
 .vehicle-detail-actions{position:absolute!important;z-index:12!important;left:0!important;right:0!important;bottom:74dvh!important;transform:translateY(-8px)!important;display:flex!important;align-items:center!important;justify-content:space-around!important;padding:0 7%!important;pointer-events:none!important}
@@ -1128,6 +1128,7 @@ function initBottomSheetDrag(selector){
   if(event.cancelable)event.preventDefault();
   const next=Math.max(window.innerHeight*.38,Math.min(window.innerHeight*.94,startHeight+delta));
   card.style.height=next+'px';
+  if(card.classList.contains('vehicle-detail-card')){const actions=document.querySelector('.vehicle-detail-actions');if(actions)actions.style.bottom=next+'px';}
   card.style.maxHeight='94dvh';
  };
  const stop=event=>{
@@ -1301,7 +1302,7 @@ async function loadVehicleRouteStops(routeId,tripId,vehicleCode,vehicle){
  }
 }
 let vehicleRouteStopsTimer=null;
-function expandVehicleCard(){const card=document.querySelector('.vehicle-detail-card');if(!card)return;const h=window.innerHeight;card.style.height=(card.getBoundingClientRect().height<h*.88?h*.92:h*.53)+'px';}
+function expandVehicleCard(){const card=document.querySelector('.vehicle-detail-card');if(!card)return;const h=window.innerHeight;const next=card.getBoundingClientRect().height<h*.88?h*.92:h*.53;card.style.height=next+'px';const actions=document.querySelector('.vehicle-detail-actions');if(actions)actions.style.bottom=next+'px';}
 async function shareVehicleDetails(){const v=Array.isArray(vehicles)?vehicles.find(item=>String(item.vehicleCode||'')===String(selectedVehicleCode)):null;if(!v)return;const text='Transportie · linia '+(v.routeShortName||'—')+' · tabor #'+(v.vehicleCode||'—')+' · '+(v.headsign||v.direction||'');try{if(navigator.share)await navigator.share({title:'Pojazd w Transportie',text});else if(navigator.clipboard)await navigator.clipboard.writeText(text);}catch(error){}}
 function closeVehicleDetails(){if(vehicleRoutePolyline&&map){map.removeLayer(vehicleRoutePolyline);vehicleRoutePolyline=null;}restoreMapAfterVehicleFocus();const overlay=document.getElementById('vehicleDetailOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}document.body.classList.remove('vehicle-detail-open','vehicle-map-focus');selectedVehicleCode=null;if(vehicleRouteStopsTimer){clearInterval(vehicleRouteStopsTimer);vehicleRouteStopsTimer=null;}}
 function formatZtmTimestamp(value){if(!value)return '';const d=new Date(value);return Number.isNaN(d.getTime())?String(value):d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
